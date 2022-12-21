@@ -30,6 +30,32 @@ def get_session_date():
     return date
 
 
+def search_matching_date(main_directory_path, date):
+    """
+    Checks whether the user-entered date is found in directory. If it is,
+    return list of available folders with the designated date. If not, print
+    error message.
+    """
+    matching_animals = []
+
+    folders = [
+        f.name
+        for f in os.scandir(main_directory_path)
+        if f.is_dir() and date in f.name
+    ]
+
+    if len(folders) == 0:
+        print("Please double check the entered date.")
+
+    else:
+        for folder in folders:
+            # this returns animal ID
+            extracted_animal = folder.split("--")[1].split("_")[0]
+            matching_animals.append(extracted_animal)
+
+    return matching_animals
+
+
 def search_matching_folders(main_directory_path, search_type, date, animal_id):
     """
     Search all folders in the directory containing matching string, depending
@@ -43,6 +69,9 @@ def search_matching_folders(main_directory_path, search_type, date, animal_id):
             for f in os.scandir(main_directory_path)
             if f.is_dir() and date in f.name
         ]
+
+        if len(folders) == 0:
+            print("Please double check the entered date.")
 
         for folder in folders:
             # this returns animal ID
@@ -133,6 +162,12 @@ def get_user_selections(main_directory):
     """
 
     date = get_session_date()
+    animals = search_matching_date(main_directory, date)
+
+    while len(animals) == 0:
+        date = get_session_date()
+        animals = search_matching_date(main_directory, date)
+
     selected_animal = choose_criteria(main_directory, "animal", date)
     selected_ROI = choose_criteria(
         main_directory, "ROI", date, selected_animal
@@ -149,7 +184,8 @@ def run_analysis(main_directory, date, animal, ROI):
     data = ImagingSession(main_directory, date, animal, ROI)
     data.get_solenoid_order()
     data.rename_first_trial_txt()
-    data.read_txt_file()
+    data.iterate_txt_files()
+    # data.read_txt_file()
 
 
 class ImagingSession(object):
@@ -159,6 +195,8 @@ class ImagingSession(object):
         self.animal_id = animal_id
         self.ROI_id = ROI_id
         self.solenoid_order = None
+        self.total_n = None
+        self.num_frames = None
 
         # Sets path to folder holding all the txt files for analysis.
         self.session_path = (
@@ -211,12 +249,78 @@ class ImagingSession(object):
         ):
             print("First trial txt file is already named correctly.")
 
-    def read_txt_file(self):
+    def iterate_txt_files(self):
+        """
+        Iterates through txt files, opens them as csv and converts each file to
+        dataframe, then collects everything inside a dict.
+        """
+
+        # creates list of paths for all text files, excluding solenoid info
+        txt_paths = [
+            str(path)
+            for path in Path(self.session_path).rglob("*.txt")
+            if "solenoid" not in path.stem
+        ]
+
+        # sorts the paths according to 000-001, etc
+        paths = sorted(txt_paths, key=lambda x: int(x[-7:-4]))
+
+        # makes one big df containing all txt data from all trials
+        all_data_df = pd.DataFrame()
+
+        for trial_num, path in enumerate(paths):
+            df = self.read_txt_file(path)
+            odor_num = self.solenoid_order[trial_num]
+
+            # add columns for trial # and odor #
+            df["Frame"] = list(range(1, len(df) + 1))
+            df["Trial"] = trial_num + 1
+            df["Odor"] = odor_num
+
+            # reorder columns
+            cols_to_move = ["Frame", "Trial", "Odor"]
+            df = df[
+                cols_to_move
+                + [col for col in df.columns if col not in cols_to_move]
+            ]
+
+            all_data_df = pd.concat([all_data_df, df], axis=0)
+
+        # get total number n of neurons/glomeruli
+        self.total_n = sum("Mean" in col for col in all_data_df.columns)
+        n_column_labels = [col for col in all_data_df.columns if "Mean" in col]
+
+        # sort all data by neuron/glomerulus, put in dict
+
+        for n_count in range(self.total_n):
+            self.collect_per_sample(all_data_df, n_column_labels[n_count])
+
+    def read_txt_file(self, path):
         """
         Reads a single txt file from one trial into a dataframe.
         """
-        file = f"{self.date}--{self.animal_id}_{self.ROI_id}_000.txt"
-        txt_df = pd.read_csv(Path(self.session_path, file))
+        # file = f"{self.date}--{self.animal_id}_{self.ROI_id}_000.txt"
+        txt_df = pd.read_csv(Path(path), sep="\t", index_col=0)
+
+        return txt_df
+
+    def collect_per_sample(self, all_data_df, sample):
+        """
+        Collects the mean values from all trials for each neuron/glomerulus.
+        """
+        n_df = all_data_df[["Frame", "Trial", "Odor", sample]]
+
+        # pivots n_df to sort by odor #
+
+        sorted_df = n_df.pivot(
+            index="Frame", columns=["Odor", "Trial"], values=sample,
+        )
+
+        sorted_df.sort_index(
+            axis=1, level=[0, 1], ascending=[True, True], inplace=True
+        )
+        sorted_df.groupby(level=0, axis=1).mean()
+
         pdb.set_trace()
 
 
