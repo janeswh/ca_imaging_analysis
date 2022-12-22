@@ -195,7 +195,11 @@ def run_analysis(main_directory, date, animal, ROI):
         data.save_raw_sample_data(raw_means, data.n_column_labels[n_count])
 
         # performs analysis for each sample
-        data.analyze_signal(avg_means)
+        analysis_df = data.analyze_signal(avg_means)
+
+        # save avg_means to xlxs file
+
+        # save analyses values to xlxs file
 
 
 class ImagingSession(object):
@@ -396,12 +400,78 @@ class ImagingSession(object):
         response_onset = response_frame * 0.0661
 
         # Calculate latency
-        latency = response_onset - odor_onset
+        latency = pd.Series(
+            [response_onset - odor_onset] * len(avg_means.columns)
+        ).set_axis(range(1, len(avg_means.columns) + 1))
 
         # Calculate time to peak
         time_to_peak = peak_times - response_onset
 
-        pdb.set_trace()
+        # puts everything in a df
+        col_names = [
+            "Odor",
+            "Baseline",
+            "Peak",
+            "DeltaF",
+            "3 std of baseline",
+            "DeltaF(BLANK)",
+            "Blank-subtracted DeltaF",
+            "Blank-subtracted DeltaF/F(%)",
+            "Significant response?",
+            "Area under curve",
+            "Blank area under curve",
+            "Blank sub AUC",
+            "Time at peak (s)",
+            "Odor onset",
+            "Response onset frame",
+            "Response onset (s)",
+            "Latency (s)",
+            "Time to peak (s)",
+        ]
+
+        odor_labels = pd.Series(
+            [f"Odor {x}" for x in range(1, len(avg_means.columns) + 1)]
+        ).set_axis(range(1, len(avg_means.columns) + 1))
+
+        series_list = [
+            odor_labels,
+            baseline,
+            peak,
+            deltaF,
+            baseline_stdx3,
+            pd.Series([deltaF_blank] * len(avg_means.columns)).set_axis(
+                range(1, len(avg_means.columns) + 1)
+            ),
+            blank_sub_deltaF,
+            blank_sub_deltaF_F_perc,
+            significance_bool,
+            auc,
+            pd.Series([auc_blank] * len(avg_means.columns)).set_axis(
+                range(1, len(avg_means.columns) + 1)
+            ),
+            blank_sub_auc,
+            peak_times,
+            pd.Series([odor_onset] * len(avg_means.columns)).set_axis(
+                range(1, len(avg_means.columns) + 1)
+            ),
+            pd.Series([response_frame] * len(avg_means.columns)).set_axis(
+                range(1, len(avg_means.columns) + 1)
+            ),
+            pd.Series([response_onset] * len(avg_means.columns)).set_axis(
+                range(1, len(avg_means.columns) + 1)
+            ),
+            latency,
+            time_to_peak,
+        ]
+
+        response_analyses_df = pd.concat(
+            series_list, axis=1, ignore_index=True
+        )
+
+        response_analyses_df.columns = col_names
+        response_analyses_df = response_analyses_df.T
+
+        return response_analyses_df
 
     def save_raw_sample_data(self, raw_means, sheet_name):
         """
