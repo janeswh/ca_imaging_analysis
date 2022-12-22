@@ -1,5 +1,4 @@
 import os
-import glob
 import pandas as pd
 from collections import OrderedDict, defaultdict
 from pathlib import Path, PureWindowsPath
@@ -182,10 +181,21 @@ def run_analysis(main_directory, date, animal, ROI):
     """
 
     data = ImagingSession(main_directory, date, animal, ROI)
-    data.get_solenoid_order()
-    data.rename_first_trial_txt()
-    data.iterate_txt_files()
-    # data.read_txt_file()
+    data.get_solenoid_order()  # gets odor order from solenoid txt file
+    data.rename_first_trial_txt()  # adds _000.txt to end of first trial file
+    data.iterate_txt_files()  # iterates over each txt file and extracts data
+
+    # sort all data by neuron/glomerulus
+    for n_count in range(data.total_n):
+        raw_means, avg_means = data.collect_per_sample(
+            data.all_data_df, data.n_column_labels[n_count]
+        )
+
+        # saves raw means to xlxs file
+        data.save_raw_sample_data(raw_means, data.n_column_labels[n_count])
+
+        # performs analysis for each sample
+        data.analyze_signal(avg_means)
 
 
 class ImagingSession(object):
@@ -196,6 +206,7 @@ class ImagingSession(object):
         self.ROI_id = ROI_id
         self.solenoid_order = None
         self.total_n = None
+        self.n_column_labels = None
         self.num_frames = None
 
         # Sets path to folder holding all the txt files for analysis.
@@ -286,14 +297,11 @@ class ImagingSession(object):
 
             all_data_df = pd.concat([all_data_df, df], axis=0)
 
-        # get total number n of neurons/glomeruli
         self.total_n = sum("Mean" in col for col in all_data_df.columns)
-        n_column_labels = [col for col in all_data_df.columns if "Mean" in col]
-
-        # sort all data by neuron/glomerulus, put in dict
-
-        for n_count in range(self.total_n):
-            self.collect_per_sample(all_data_df, n_column_labels[n_count])
+        self.n_column_labels = [
+            col for col in all_data_df.columns if "Mean" in col
+        ]
+        self.all_data_df = all_data_df
 
     def read_txt_file(self, path):
         """
@@ -307,11 +315,11 @@ class ImagingSession(object):
     def collect_per_sample(self, all_data_df, sample):
         """
         Collects the mean values from all trials for each neuron/glomerulus.
+        Returns the raw means for each sample and the mean of means.
         """
         n_df = all_data_df[["Frame", "Trial", "Odor", sample]]
 
         # pivots n_df to sort by odor #
-
         sorted_df = n_df.pivot(
             index="Frame", columns=["Odor", "Trial"], values=sample,
         )
@@ -319,9 +327,100 @@ class ImagingSession(object):
         sorted_df.sort_index(
             axis=1, level=[0, 1], ascending=[True, True], inplace=True
         )
-        sorted_df.groupby(level=0, axis=1).mean()
+        means = sorted_df.groupby(level=0, axis=1).mean()
+
+        return sorted_df, means
+
+    def analyze_signal(self, avg_means):
+        """
+        Calculates baseline signal using avg from frames #1-46
+
+        """
+        baseline = avg_means[:46].mean()
+
+        # Calculates peak using max value from frames #49-300
+        peak = avg_means[48:].max()
+
+        # Calculates deltaF using peak-baseline
+        deltaF = peak - baseline
+
+        # Calculates 3 x std of baseline
+        baseline_stdx3 = avg_means[:46].std() * 3
+
+        # Get deltaF blank - is this the deltaF of Odor 8?
+        deltaF_blank = deltaF[8]
+
+        # Calculates blank-subtracted deltaF
+        blank_sub_deltaF = deltaF - deltaF_blank
+
+        # Calculates blanksub_deltaF/F(%)
+        blank_sub_deltaF_F_perc = blank_sub_deltaF / baseline * 100
+
+        # Determines whether response is significant by checking whether
+        # blank_sub_deltaF is greater than baseline_stdx3.
+
+        significance_bool = blank_sub_deltaF > baseline_stdx3
+        # t = pd.Series([True, False])
+        # pdb.set_trace()
+        # for i in significance_bool:
+        #     if i == False:
+        #         i = 0
+        #     else:
+        #         i = blank_sub_deltaF[idx]
+
+        # Calculates baseline-subtracted avg means
+        baseline_subtracted = avg_means - baseline
+
+        # Calculates AUC using sum of values from frames # 57-303
+        auc = baseline_subtracted[56:303].sum()
+
+        # Gets AUC_blank from AUC of Odor 8
+        auc_blank = auc[8]
+
+        # Calculates blank-subtracted AUC
+        blank_sub_auc = auc - auc_blank
+
+        # Calculates time at signal peak using all the frames
+        # why does excel sheet have - 2??
+        max_frames = avg_means[48:].idxmax()
+        peak_times = max_frames * 0.0661
+
+        # Get odor onset - how is this calculated?? Frame 57?
+        odor_onset = 57 * 0.0661
+
+        # Set frame at which odor response begins - need user input? Or
+        # calculated?
+        response_frame = 52  # dummy value
+
+        # Calculate response onset
+        response_onset = response_frame * 0.0661
+
+        # Calculate latency
+        latency = response_onset - odor_onset
+
+        # Calculate time to peak
+        time_to_peak = peak_times - response_onset
 
         pdb.set_trace()
+
+    def save_raw_sample_data(self, raw_means, sheet_name):
+        """
+        Saves the raw means for each sample into a sheet in xlsx file.
+        """
+        xlsx_fname = (
+            f"{self.date}_{self.animal_id}_{self.ROI_id}_raw_means.xlsx"
+        )
+        xlsx_path = Path(self.session_path, xlsx_fname)
+
+        # checks whether xlsx file already exists
+        if os.path.isfile(xlsx_path):  # if it does, write to existing file
+            # if sheet already exists, overwrite it
+            with pd.ExcelWriter(
+                xlsx_path, mode="a", if_sheet_exists="replace"
+            ) as writer:
+                raw_means.to_excel(writer, sheet_name)
+        else:  # otherwise, write to new file
+            raw_means.to_excel(xlsx_path, sheet_name)
 
 
 def main():
