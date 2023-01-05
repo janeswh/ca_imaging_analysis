@@ -198,8 +198,10 @@ def run_analysis(main_directory, date, animal, ROI):
         analysis_df = data.analyze_signal(avg_means)
 
         # save avg_means to xlxs file
+        data.save_avg_means(avg_means, data.n_column_labels[n_count])
 
         # save analyses values to xlxs file
+        data.save_sig_analysis(analysis_df, data.n_column_labels[n_count])
 
 
 class ImagingSession(object):
@@ -492,6 +494,44 @@ class ImagingSession(object):
         else:  # otherwise, write to new file
             raw_means.to_excel(xlsx_path, sheet_name)
 
+    def save_sig_analysis(self, stats, sheet_name):
+        """
+        Saves the signal analysis for each sample into a sheet in xlsx file.
+        """
+        xlsx_fname = (
+            f"{self.date}_{self.animal_id}_{self.ROI_id}_analysis.xlsx"
+        )
+        xlsx_path = Path(self.session_path, xlsx_fname)
+
+        # checks whether xlsx file already exists
+        if os.path.isfile(xlsx_path):  # if it does, write to existing file
+            # if sheet already exists, overwrite it
+            with pd.ExcelWriter(
+                xlsx_path, mode="a", if_sheet_exists="replace"
+            ) as writer:
+                stats.to_excel(writer, sheet_name)
+        else:  # otherwise, write to new file
+            stats.to_excel(xlsx_path, sheet_name)
+
+    def save_avg_means(self, avg_means, sheet_name):
+        """
+        Saves the avg means for each sample into a sheet in xlsx file.
+        """
+        xlsx_fname = (
+            f"{self.date}_{self.animal_id}_{self.ROI_id}_avg_means.xlsx"
+        )
+        xlsx_path = Path(self.session_path, xlsx_fname)
+
+        # checks whether xlsx file already exists
+        if os.path.isfile(xlsx_path):  # if it does, write to existing file
+            # if sheet already exists, overwrite it
+            with pd.ExcelWriter(
+                xlsx_path, mode="a", if_sheet_exists="replace"
+            ) as writer:
+                avg_means.to_excel(writer, sheet_name)
+        else:  # otherwise, write to new file
+            avg_means.to_excel(xlsx_path, sheet_name)
+
 
 def main():
     main_directory = set_main_directory()
@@ -519,6 +559,7 @@ def main():
     print("Continuing with analysis...")
 
     run_analysis(main_directory, date, selected_animal, selected_ROI)
+    print("Done")
 
 
 if __name__ == "__main__":
