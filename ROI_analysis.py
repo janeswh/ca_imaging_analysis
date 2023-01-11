@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from collections import OrderedDict, defaultdict
 from pathlib import Path, PureWindowsPath
 import re
@@ -339,13 +340,14 @@ class ImagingSession(object):
 
     def analyze_signal(self, avg_means):
         """
-        Calculates baseline signal using avg from frames #1-46
+        Calculates baseline signal using avg from frames #1-52
 
         """
-        baseline = avg_means[:46].mean()
 
-        # Calculates peak using max value from frames #49-300
-        peak = avg_means[48:].max()
+        baseline = avg_means[:52].mean()
+
+        # Calculates peak using max value from frames #53-300
+        peak = avg_means[52:300].max()
 
         # Calculates deltaF using peak-baseline
         deltaF = peak - baseline
@@ -366,30 +368,43 @@ class ImagingSession(object):
         # blank_sub_deltaF is greater than baseline_stdx3.
 
         significance_bool = blank_sub_deltaF > baseline_stdx3
-        # t = pd.Series([True, False])
-        # pdb.set_trace()
-        # for i in significance_bool:
-        #     if i == False:
-        #         i = 0
-        #     else:
-        #         i = blank_sub_deltaF[idx]
+
+        # gets odor #s with significant responses
+        sig_odors = significance_bool[significance_bool].index.values
+
+        # reports False if odor is not significant, otherwise
+        # reports blanksub_deltaF/F(%)
+        significance_report = significance_bool.copy()
+        significance_report[sig_odors] = blank_sub_deltaF_F_perc[sig_odors]
+        significance_report = pd.Series(significance_report)
 
         # Calculates baseline-subtracted avg means
         baseline_subtracted = avg_means - baseline
 
-        # Calculates AUC using sum of values from frames # 57-303
-        auc = baseline_subtracted[56:303].sum()
+        # Calculates AUC using sum of values from frames # 1-300
+        # formula: (sum(avg_mean_frames1-300) - (baseline*300)) * 0.0661
+
+        auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
+        # auc = baseline_subtracted[56:303].sum()
 
         # Gets AUC_blank from AUC of Odor 8
         auc_blank = auc[8]
 
-        # Calculates blank-subtracted AUC
-        blank_sub_auc = auc - auc_blank
+        # Creates 'N/A' template for non-significant odor responses
+        na_template = pd.Series("N/A", index=avg_means.columns)
+
+        # Calculates blank-subtracted AUC only if response is present
+        blank_sub_auc = na_template.copy()
+        blank_sub_auc[sig_odors] = auc[sig_odors] - auc_blank
+
+        # only do the below if response is present
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
-        max_frames = avg_means[48:].idxmax()
-        peak_times = max_frames * 0.0661
+        max_frames = avg_means[:300].idxmax() - 2
+        peak_times = na_template.copy()
+        peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
+        pdb.set_trace()
 
         # Get odor onset - how is this calculated?? Frame 57?
         odor_onset = 57 * 0.0661
