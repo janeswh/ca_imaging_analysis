@@ -371,6 +371,7 @@ class ImagingSession(object):
 
         # gets odor #s with significant responses
         sig_odors = significance_bool[significance_bool].index.values
+        # sig_odors = [1, 5]    # for testing
 
         # reports False if odor is not significant, otherwise
         # reports blanksub_deltaF/F(%)
@@ -385,7 +386,6 @@ class ImagingSession(object):
         # formula: (sum(avg_mean_frames1-300) - (baseline*300)) * 0.0661
 
         auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
-        # auc = baseline_subtracted[56:303].sum()
 
         # Gets AUC_blank from AUC of Odor 8
         auc_blank = auc[8]
@@ -401,28 +401,32 @@ class ImagingSession(object):
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
-        max_frames = avg_means[:300].idxmax() - 2
+        max_frames = avg_means[:300].idxmax()
         peak_times = na_template.copy()
         peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
-        pdb.set_trace()
 
-        # Get odor onset - how is this calculated?? Frame 57?
+        # Get odor onset - Frame 57?
         odor_onset = 57 * 0.0661
 
-        # Set frame at which odor response begins - need user input? Or
-        # calculated?
-        response_frame = 52  # dummy value
+        # Calculate response onset only for significant odors
+        response_onset = na_template.copy()
+        onset_amp = deltaF * 0.05
 
-        # Calculate response onset
-        response_onset = response_frame * 0.0661
+        for sig_odor in sig_odors:
+            window = baseline_subtracted[56:300][sig_odor]
+            onset_idx = np.argmax(window >= onset_amp[sig_odor])
+            onset_time = window.index[onset_idx] * 0.0661
+            response_onset[sig_odor] = onset_time
 
         # Calculate latency
-        latency = pd.Series(
-            [response_onset - odor_onset] * len(avg_means.columns)
-        ).set_axis(range(1, len(avg_means.columns) + 1))
+        latency = na_template.copy()
+        latency[sig_odors] = response_onset[sig_odors] - odor_onset
 
         # Calculate time to peak
-        time_to_peak = peak_times - response_onset
+        time_to_peak = na_template.copy()
+        time_to_peak[sig_odors] = (
+            peak_times[sig_odors] - response_onset[sig_odors]
+        )
 
         # puts everything in a df
         col_names = [
@@ -440,7 +444,6 @@ class ImagingSession(object):
             "Blank sub AUC",
             "Time at peak (s)",
             "Odor onset",
-            "Response onset frame",
             "Response onset (s)",
             "Latency (s)",
             "Time to peak (s)",
@@ -471,12 +474,7 @@ class ImagingSession(object):
             pd.Series([odor_onset] * len(avg_means.columns)).set_axis(
                 range(1, len(avg_means.columns) + 1)
             ),
-            pd.Series([response_frame] * len(avg_means.columns)).set_axis(
-                range(1, len(avg_means.columns) + 1)
-            ),
-            pd.Series([response_onset] * len(avg_means.columns)).set_axis(
-                range(1, len(avg_means.columns) + 1)
-            ),
+            response_onset,
             latency,
             time_to_peak,
         ]
