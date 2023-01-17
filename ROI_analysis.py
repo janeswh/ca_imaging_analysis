@@ -355,8 +355,8 @@ class ImagingSession(object):
         # Calculates 3 x std of baseline
         baseline_stdx3 = avg_means[:46].std() * 3
 
-        # Get deltaF blank - is this the deltaF of Odor 8?
-        deltaF_blank = deltaF[8]
+        # Get deltaF blank - blank is the last odor
+        deltaF_blank = deltaF[avg_means.columns[-1]]
 
         # Calculates blank-subtracted deltaF
         blank_sub_deltaF = deltaF - deltaF_blank
@@ -387,8 +387,9 @@ class ImagingSession(object):
 
         auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
 
-        # Gets AUC_blank from AUC of Odor 8
-        auc_blank = auc[8]
+        # Gets AUC_blank from AUC of the last odor
+
+        auc_blank = auc[avg_means.columns[-1]]
 
         # Creates 'N/A' template for non-significant odor responses
         na_template = pd.Series("N/A", index=avg_means.columns)
@@ -464,7 +465,7 @@ class ImagingSession(object):
             ),
             blank_sub_deltaF,
             blank_sub_deltaF_F_perc,
-            significance_bool,
+            significance_report,
             auc,
             pd.Series([auc_blank] * len(avg_means.columns)).set_axis(
                 range(1, len(avg_means.columns) + 1)
