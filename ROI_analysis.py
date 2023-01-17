@@ -156,6 +156,24 @@ def choose_criteria(main_directory, choice_type, date, animal_id=None):
     return selected_criteria
 
 
+def choose_sample_type():
+    """
+    Prompts user to select the sample type - cell vs. glomerulus
+    """
+    # prompts user to select animal ID from available IDs in specified date
+    sample_choices_dict = {"1": "Cell", "2": "Glomerulus"}
+    for c, value in sample_choices_dict.items():
+        print(f"{c}. {value}")
+
+    choice = input("Select sample type using corresponding digit: ")
+
+    while choice not in sample_choices_dict:
+        choice = input(f"Choose one of: {', '.join(sample_choices_dict)}: ")
+    print(f"Sample type: {sample_choices_dict[choice]}")
+
+    return sample_choices_dict[choice]
+
+
 def get_user_selections(main_directory):
     """
     Contains functions prompting user for date, animal ID, and ROI. 
@@ -172,16 +190,17 @@ def get_user_selections(main_directory):
     selected_ROI = choose_criteria(
         main_directory, "ROI", date, selected_animal
     )
+    sample_type = choose_sample_type()
 
-    return date, selected_animal, selected_ROI
+    return date, selected_animal, selected_ROI, sample_type
 
 
-def run_analysis(main_directory, date, animal, ROI):
+def run_analysis(main_directory, date, animal, ROI, sample_type):
     """
     Runs the analysis for one imaging session.
     """
 
-    data = ImagingSession(main_directory, date, animal, ROI)
+    data = ImagingSession(main_directory, date, animal, ROI, sample_type)
     data.get_solenoid_order()  # gets odor order from solenoid txt file
     data.rename_first_trial_txt()  # adds _000.txt to end of first trial file
     data.iterate_txt_files()  # iterates over each txt file and extracts data
@@ -191,7 +210,7 @@ def run_analysis(main_directory, date, animal, ROI):
         raw_means, avg_means = data.collect_per_sample(
             data.all_data_df, data.n_column_labels[n_count]
         )
-
+        pdb.set_trace()
         # saves raw means to xlxs file
         data.save_raw_sample_data(raw_means, data.n_column_labels[n_count])
 
@@ -206,11 +225,12 @@ def run_analysis(main_directory, date, animal, ROI):
 
 
 class ImagingSession(object):
-    def __init__(self, root_dir, date, animal_id, ROI_id):
+    def __init__(self, root_dir, date, animal_id, ROI_id, sample_type):
 
         self.date = date
         self.animal_id = animal_id
         self.ROI_id = ROI_id
+        self.sample_type = sample_type
         self.solenoid_order = None
         self.total_n = None
         self.n_column_labels = None
@@ -304,10 +324,18 @@ class ImagingSession(object):
 
             all_data_df = pd.concat([all_data_df, df], axis=0)
 
-        self.total_n = sum("Mean" in col for col in all_data_df.columns)
+        # replace column names with sample type
+        all_data_df.columns = all_data_df.columns.str.replace(
+            "Mean", f"{self.sample_type} "
+        )
+
+        self.total_n = sum(
+            self.sample_type in col for col in all_data_df.columns
+        )
         self.n_column_labels = [
-            col for col in all_data_df.columns if "Mean" in col
+            col for col in all_data_df.columns if self.sample_type in col
         ]
+
         self.all_data_df = all_data_df
 
     def read_txt_file(self, path):
@@ -343,7 +371,6 @@ class ImagingSession(object):
         Calculates baseline signal using avg from frames #1-52
 
         """
-
         baseline = avg_means[:52].mean()
 
         # Calculates peak using max value from frames #53-300
@@ -549,7 +576,9 @@ class ImagingSession(object):
 
 def main():
     main_directory = set_main_directory()
-    date, selected_animal, selected_ROI = get_user_selections(main_directory)
+    date, selected_animal, selected_ROI, sample_type = get_user_selections(
+        main_directory
+    )
 
     # confirms user selection and provides option to restart selection
     while True:
@@ -572,7 +601,9 @@ def main():
 
     print("Continuing with analysis...")
 
-    run_analysis(main_directory, date, selected_animal, selected_ROI)
+    run_analysis(
+        main_directory, date, selected_animal, selected_ROI, sample_type
+    )
     print("Done")
 
 
