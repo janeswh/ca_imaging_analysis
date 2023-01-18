@@ -4,20 +4,41 @@ import numpy as np
 from collections import OrderedDict, defaultdict
 from pathlib import Path, PureWindowsPath
 import re
+import tkinter
+from tkinter.filedialog import askdirectory
 
 import pdb
 
 
-def set_main_directory():
+def get_main_directory():
     """
-    Defines the directory that holds all the text files across all imaging
-    sessions
+    Prompts user for the folder containing txt files to be analyzed.
     """
-    main_directory_path = (
-        "/home/jhuang/Documents/phd_projects/Ca_image_analysis_examples"
+
+    print(
+        "Please select the folder containing the Ca imaging raw .txt files "
+        "from the imaging session you want to analyze. The folder should be "
+        "named in the format YYMMDD--123456-7-8_ROIX where 123456-7-8 is the "
+        "animal ID, and X is the one-digit ROI number."
     )
 
-    return main_directory_path
+    tkinter.Tk().withdraw()
+    dir_path = askdirectory()
+    folder = os.path.basename(dir_path)
+
+    return dir_path, folder
+
+
+def get_session_info(folder):
+    """
+    Gets the date, animal ID, and ROI info from the name of the selected
+    folder.
+    """
+    date = folder.split("--")[0]
+    animal_ID = folder.split("--")[1].split("_")[0]
+    roi = folder.split("_")[1]
+
+    return date, animal_ID, roi
 
 
 def get_session_date():
@@ -28,132 +49,6 @@ def get_session_date():
     date = input("Enter imaging date as format YYMMDD: ")
 
     return date
-
-
-def search_matching_date(main_directory_path, date):
-    """
-    Checks whether the user-entered date is found in directory. If it is,
-    return list of available folders with the designated date. If not, print
-    error message.
-    """
-    matching_animals = []
-
-    folders = [
-        f.name
-        for f in os.scandir(main_directory_path)
-        if f.is_dir() and date in f.name
-    ]
-
-    if len(folders) == 0:
-        print("Please double check the entered date.")
-
-    else:
-        for folder in folders:
-            # this returns animal ID
-            extracted_animal = folder.split("--")[1].split("_")[0]
-            matching_animals.append(extracted_animal)
-
-    return matching_animals
-
-
-def search_matching_folders(main_directory_path, search_type, date, animal_id):
-    """
-    Search all folders in the directory containing matching string, depending
-    on whether searching for animal ID for a given date, or ROI for a given 
-    date and animal
-    """
-    extracted_list = []
-    if search_type == "date":
-        folders = [
-            f.name
-            for f in os.scandir(main_directory_path)
-            if f.is_dir() and date in f.name
-        ]
-
-        if len(folders) == 0:
-            print("Please double check the entered date.")
-
-        for folder in folders:
-            # this returns animal ID
-            extracted_item = folder.split("--")[1].split("_")[0]
-            extracted_list.append(extracted_item)
-
-    elif search_type == "animal":
-        folders = [
-            f.name
-            for f in os.scandir(main_directory_path)
-            if f.is_dir() and date in f.name and animal_id in f.name
-        ]
-
-        for folder in folders:
-            # this returns ROI
-            extracted_item = folder.split("_")[1]
-            extracted_list.append(extracted_item)
-
-    return extracted_list
-
-
-def make_choices_dict(raw_list):
-    """
-    Makes a dict of animal ID or ROI choices for user to select from
-    """
-    # sorts list by last digit of animal ID or ROI ID
-    sorted_list = sorted(raw_list, key=lambda x: int(x[-1]))
-
-    drop_dupes_dict = OrderedDict.fromkeys(sorted_list)
-
-    choice_int_list = [
-        str(i) for i in list(range(1, len(drop_dupes_dict) + 1))
-    ]
-
-    for key, val in zip(drop_dupes_dict, choice_int_list):
-        drop_dupes_dict[key] = val
-
-    select_dict = {v: k for k, v in drop_dupes_dict.items()}
-
-    return select_dict
-
-
-def get_user_input(choice_type, select_dict):
-    """
-    Prompts the user to select either animal ID from the specified date
-    or ROI from the specified animal ID.
-    """
-    if choice_type == "animal":
-        input_prompt = "Select animal ID using corresponding digit: "
-        reprompt = "Animal ID: "
-    elif choice_type == "ROI":
-        input_prompt = "Select ROI using corresponding digit: "
-        reprompt = "ROI: "
-
-    # prompts user to select animal ID from available IDs in specified date
-    for c, value in select_dict.items():
-        print(f"{c}. {value}")
-
-    choice = input(input_prompt)
-
-    while choice not in select_dict:
-        choice = input(f"Choose one of: {', '.join(select_dict)}: ")
-    print(f"{reprompt}{select_dict[choice]}")
-
-    return select_dict[choice]
-
-
-def choose_criteria(main_directory, choice_type, date, animal_id=None):
-
-    if choice_type == "animal":
-        search_type = "date"
-
-    elif choice_type == "ROI":
-        search_type = "animal"
-
-    folders = search_matching_folders(
-        main_directory, search_type, date, animal_id
-    )
-    select_dict = make_choices_dict(folders)
-    selected_criteria = get_user_input(choice_type, select_dict)
-
-    return selected_criteria
 
 
 def choose_sample_type():
@@ -174,33 +69,12 @@ def choose_sample_type():
     return sample_choices_dict[choice]
 
 
-def get_user_selections(main_directory):
-    """
-    Contains functions prompting user for date, animal ID, and ROI. 
-    """
-
-    date = get_session_date()
-    animals = search_matching_date(main_directory, date)
-
-    while len(animals) == 0:
-        date = get_session_date()
-        animals = search_matching_date(main_directory, date)
-
-    selected_animal = choose_criteria(main_directory, "animal", date)
-    selected_ROI = choose_criteria(
-        main_directory, "ROI", date, selected_animal
-    )
-    sample_type = choose_sample_type()
-
-    return date, selected_animal, selected_ROI, sample_type
-
-
-def run_analysis(main_directory, date, animal, ROI, sample_type):
+def run_analysis(folder_path, date, animal, ROI, sample_type):
     """
     Runs the analysis for one imaging session.
     """
 
-    data = ImagingSession(main_directory, date, animal, ROI, sample_type)
+    data = ImagingSession(folder_path, date, animal, ROI, sample_type)
     data.get_solenoid_order()  # gets odor order from solenoid txt file
     data.rename_first_trial_txt()  # adds _000.txt to end of first trial file
     data.iterate_txt_files()  # iterates over each txt file and extracts data
@@ -210,7 +84,7 @@ def run_analysis(main_directory, date, animal, ROI, sample_type):
         raw_means, avg_means = data.collect_per_sample(
             data.all_data_df, data.n_column_labels[n_count]
         )
-        pdb.set_trace()
+
         # saves raw means to xlxs file
         data.save_raw_sample_data(raw_means, data.n_column_labels[n_count])
 
@@ -225,7 +99,7 @@ def run_analysis(main_directory, date, animal, ROI, sample_type):
 
 
 class ImagingSession(object):
-    def __init__(self, root_dir, date, animal_id, ROI_id, sample_type):
+    def __init__(self, folder_path, date, animal_id, ROI_id, sample_type):
 
         self.date = date
         self.animal_id = animal_id
@@ -237,9 +111,7 @@ class ImagingSession(object):
         self.num_frames = None
 
         # Sets path to folder holding all the txt files for analysis.
-        self.session_path = (
-            f"{root_dir}/{self.date}--{self.animal_id}_{self.ROI_id}"
-        )
+        self.session_path = folder_path
 
     def get_solenoid_order(self):
         """
@@ -342,7 +214,6 @@ class ImagingSession(object):
         """
         Reads a single txt file from one trial into a dataframe.
         """
-        # file = f"{self.date}--{self.animal_id}_{self.ROI_id}_000.txt"
         txt_df = pd.read_csv(Path(path), sep="\t", index_col=0)
 
         return txt_df
@@ -575,17 +446,16 @@ class ImagingSession(object):
 
 
 def main():
-    main_directory = set_main_directory()
-    date, selected_animal, selected_ROI, sample_type = get_user_selections(
-        main_directory
-    )
+    folder_path, folder = get_main_directory()
+    date, animal_ID, roi = get_session_info(folder)
+    sample_type = choose_sample_type()
 
     # confirms user selection and provides option to restart selection
     while True:
         confirm = input(
-            f"You've chosen Date {date}, animal ID {selected_animal}, and \n"
-            f"{selected_ROI}. Press y to start analysis, or n to restart \n"
-            f"selection."
+            f"You've chosen to analyze data from Date {date}, animal ID \n"
+            f"{animal_ID}, and {roi}. Press y to start analysis, \n"
+            f"or n to restart selection."
         )
 
         if confirm not in ("y", "n"):
@@ -593,17 +463,15 @@ def main():
             break
 
         if confirm == "n":
-            date, selected_animal, selected_ROI = get_user_selections(
-                main_directory
-            )
+            folder = get_main_directory()
+            date, animal_ID, roi = get_session_info(folder)
+            sample_type = choose_sample_type()
         else:
             break
 
     print("Continuing with analysis...")
 
-    run_analysis(
-        main_directory, date, selected_animal, selected_ROI, sample_type
-    )
+    run_analysis(folder_path, date, animal_ID, roi, sample_type)
     print("Done")
 
 
