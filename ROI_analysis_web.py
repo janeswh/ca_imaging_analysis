@@ -45,7 +45,7 @@ def make_pick_folder_button():
     return clicked
 
 
-@st.cache(suppress_st_warning=True)
+# @st.cache(suppress_st_warning=True)
 def pop_folder_selector():
     """
     Pops up a dialog to select folder. Won't pop up again when the script
@@ -104,7 +104,8 @@ def choose_sample_type():
     """
 
     choice = st.radio("Select sample type:", ("Cell", "Glomerulus"))
-    st.write("Selected sample type:", choice)
+
+    return choice
 
 
 def run_analysis(folder_path, date, animal, ROI, sample_type):
@@ -487,17 +488,24 @@ def main():
     set_webapp_params()
 
     # # # --- Initialising SessionState ---
-    if "select_folder" not in st.session_state:
-        st.session_state.select_folder = False
+
+    if "dir_path" not in st.session_state:
+        st.session_state.dir_path = False
+    if "sample_type" not in st.session_state:
+        st.session_state.sample_type = False
 
     clicked = make_pick_folder_button()
 
-    if clicked or st.session_state.select_folder:
-        st.session_state.select_folder = True
-        dir_path = pop_folder_selector()
-        get_selected_folder_info(dir_path)
-        choose_sample_type()
-        confirm_choice()
+    if clicked:
+        st.session_state.dir_path = pop_folder_selector()
+
+    if st.session_state.dir_path:
+        get_selected_folder_info(st.session_state.dir_path)
+        st.session_state.sample_type = choose_sample_type()
+        # confirm_choice()
+
+        if st.button("Analyze"):
+            st.markdown("Analyzing")
 
     # # confirms user selection and provides option to restart selection
     # while True:
