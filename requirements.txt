@@ -1,1 +1,1 @@
-stqdm
+stqdm==0.0.5
