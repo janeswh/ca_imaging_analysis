@@ -7,6 +7,7 @@ from pathlib import Path, PureWindowsPath
 import re
 import tkinter as tk
 from tkinter.filedialog import askdirectory
+from stqdm import stqdm
 
 import pdb
 
@@ -32,7 +33,11 @@ def get_selected_folder_info(dir_path):
     st.write("Selected folder:")
     st.info(dir_path)
     folder = os.path.basename(dir_path)
-    date, animal_ID, roi = get_session_info(folder)
+    try:
+        date, animal_ID, roi = get_session_info(folder)
+
+    except IndexError:
+        date = animal_ID = roi = None
 
     return date, animal_ID, roi
 
@@ -119,7 +124,12 @@ def run_analysis(folder_path, date, animal, ROI, sample_type):
     data.iterate_txt_files()  # iterates over each txt file and extracts data
 
     # sort all data by neuron/glomerulus
-    for n_count in range(data.total_n):
+    # adds progress bar
+    bar = stqdm(
+        range(data.total_n),
+        desc=f"Analyzing {sample_type}",
+    )
+    for n_count in bar:
         raw_means, avg_means = data.collect_per_sample(
             data.all_data_df, data.n_column_labels[n_count]
         )
@@ -135,6 +145,12 @@ def run_analysis(folder_path, date, animal, ROI, sample_type):
 
         # save analyses values to xlxs file
         data.save_sig_analysis(analysis_df, data.n_column_labels[n_count])
+
+        bar.set_description(
+            f"Analyzing {sample_type} {n_count+1}", refresh=True
+        )
+
+    st.write("Analysis finished.")
 
 
 class ImagingSession(object):
@@ -500,36 +516,30 @@ def main():
         st.session_state.dir_path = pop_folder_selector()
 
     if st.session_state.dir_path:
-        get_selected_folder_info(st.session_state.dir_path)
-        st.session_state.sample_type = choose_sample_type()
-        # confirm_choice()
+        date, animal_id, roi = get_selected_folder_info(
+            st.session_state.dir_path
+        )
 
-        if st.button("Analyze"):
-            st.markdown("Analyzing")
+        # if folder has been selected properly, proceed
+        # pdb.set_trace()
+        if date:
+            st.session_state.sample_type = choose_sample_type()
+            # confirm_choice()
 
-    # # confirms user selection and provides option to restart selection
-    # while True:
-    #     confirm = input(
-    #         f"You've chosen to analyze data from Date {date}, animal ID \n"
-    #         f"{animal_ID}, and {roi}. Press y to start analysis, \n"
-    #         f"or n to restart selection."
-    #     )
-
-    #     if confirm not in ("y", "n"):
-    #         print("Invalid input. Type y or n.")
-    #         break
-
-    #     if confirm == "n":
-    #         folder = get_main_directory()
-    #         date, animal_ID, roi = get_session_info(folder)
-    #         sample_type = choose_sample_type()
-    #     else:
-    #         break
-
-    # print("Continuing with analysis...")
-
-    # run_analysis(folder_path, date, animal_ID, roi, sample_type)
-    # print("Done")
+            if st.button("Analyze"):
+                run_analysis(
+                    st.session_state.dir_path,
+                    date,
+                    animal_id,
+                    roi,
+                    st.session_state.sample_type,
+                )
+        else:
+            # tells user to pick directory properly
+            st.error(
+                "Please ensure that you've selected the desired folder by "
+                "opening it in the file dialog and that it's named correctly."
+            )
 
 
 if __name__ == "__main__":
