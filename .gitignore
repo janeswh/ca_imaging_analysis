@@ -1,0 +1,5 @@
+# ignore docker files
+run_docker.sh
+Dockerfile
+Docker_singlesdtage
+.dockerignore
