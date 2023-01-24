@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
 RUN git clone https://github.com/janeswh/ca_imaging_analysis.git .
 
 RUN pip3 install -r requirements.txt
+RUN python -m pip install openpyxl
+
 
 EXPOSE 8501
 
