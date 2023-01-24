@@ -1,8 +1,13 @@
 # app/Dockerfile
 
-FROM python:3.9-slim
+FROM python:3.9-slim AS build
 
-WORKDIR /app
+# virtualenv
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -18,6 +23,13 @@ RUN git clone https://github.com/janeswh/ca_imaging_analysis.git .
 RUN pip3 install -r requirements.txt
 RUN python -m pip install openpyxl
 
+FROM python:3.9-slim AS runtime
+
+# copy from build image
+COPY --from=build /opt/venv /opt/venv
+
+
+WORKDIR /app
 
 EXPOSE 8501
 
