@@ -49,7 +49,14 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt ./
 RUN pip3 install -r requirements.txt \
-    && python -m pip install openpyxl    
+    && python -m pip install openpyxl 
+
+# # bypass email prompt
+# RUN mkdir -p /root/.streamlit
+# RUN bash -c 'echo -e "\
+# [general]\n\
+# email = \"\"\n\
+# " > /root/.streamlit/credentials.toml'   
 
 FROM python:3.9-slim AS runtime
 
@@ -74,6 +81,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y tk \
 # set working directory
 WORKDIR /app
 
+
+
 # switch to non-root user
 USER user
 
@@ -84,7 +93,7 @@ COPY ROI_analysis_web.py ./
 
 EXPOSE 8501
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-ENTRYPOINT ["streamlit", "run", "ROI_analysis_web.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "ROI_analysis_web.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
 
 
 
