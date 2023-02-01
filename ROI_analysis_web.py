@@ -108,7 +108,7 @@ def choose_sample_type():
     Prompts user to select the sample type - cell vs. glomerulus
     """
 
-    choice = st.radio("Select sample type:", ("Cell", "Glomerulus"))
+    choice = st.radio("Select sample type:", ("Cell", "Glomerulus", "Grid"))
 
     return choice
 
