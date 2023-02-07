@@ -96,6 +96,7 @@ def get_session_info(folder):
     Gets the date, animal ID, and ROI info from the name of the selected
     folder.
     """
+
     date = folder.split("--")[0]
     animal_ID = folder.split("--")[1].split("_")[0]
     roi = folder.split("_")[1]
@@ -197,6 +198,60 @@ class ImagingSession(object):
         Doesn't do anything if the file has already been renamed previously.
         """
 
+        # pulls out txt file names, excluding solenoid file
+        data_files = [
+            x
+            for x in os.listdir(self.session_path)
+            if "solenoid" not in x and ".txt" in x
+        ]
+
+        # sorts the file names according to 000-001, etc
+        file_names = sorted(data_files, key=lambda x: x[-7:-4])
+
+        # renames text files
+        _ext = ".txt"
+        endsWithNumber = re.compile(r"(\d+)" + (re.escape(_ext)) + "$")
+        for filename in file_names:
+            m = endsWithNumber.search(filename)
+
+            if m:
+                os.rename(
+                    Path(self.session_path, filename),
+                    Path(
+                        self.session_path,
+                        str(
+                            self.date
+                            + "--"
+                            + self.animal_id
+                            + "_"
+                            + self.ROI_id
+                            + "_"
+                            + m.group(1).zfill(3)
+                            + _ext
+                        ),
+                    ),
+                )
+
+            # this renames the first trial text file and adds 000
+            else:
+                os.rename(
+                    Path(self.session_path, filename),
+                    Path(
+                        self.session_path,
+                        str(
+                            self.date
+                            + "--"
+                            + self.animal_id
+                            + "_"
+                            + self.ROI_id
+                            + "_"
+                            + str(0).zfill(3)
+                            + _ext
+                        ),
+                    ),
+                )
+
+        pdb.set_trace()
         first_trial_name = f"{self.date}--{self.animal_id}_{self.ROI_id}"
         first_trial_path = Path(self.session_path, first_trial_name + ".txt")
 
