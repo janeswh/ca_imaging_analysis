@@ -131,29 +131,23 @@ def run_analysis(folder_path, date, animal, ROI, sample_type, run_type):
     if run_type == "solenoid":
         data.save_solenoid_info()  # saves solenoid order to csv
         st.info("Solenoid info exported to csv.")
-    elif run_type == "analysis":
-        data.get_txt_file_paths()
 
+    elif run_type == "analysis":
         # display error message if no txt files present
-        if len(data.txt_paths) == 0:
+        data_files = [
+            x
+            for x in os.listdir(data.session_path)
+            if "solenoid" not in x and ".txt" in x
+        ]
+        if len(data_files) == 0:
             st.error(
                 "Please make sure the Ca imaging txt files are present in "
                 "the selected directory."
             )
         else:
             data.rename_txt()  # adds _000.txt to end of first trial file
-
-            # checks the number of txt files; if 24, need to sort by odor; if
-            # 8, then the txt files are already combined per odor
-
-            if len(data.txt_paths) == 8:
-                presorted = True
-            elif len(data.txt_paths) == 24:
-                presorted = False
-
-            data.iterate_txt_files(
-                presorted
-            )  # iterates over each txt file and extracts data
+            data.get_txt_file_paths()
+            data.iterate_txt_files()  # iterates over each txt file and extracts data
 
             # sort all data by neuron/glomerulus
             # adds progress bar
@@ -254,10 +248,16 @@ class ImagingSession(object):
 
         # checks whether files have been renamed
         first_trial_name = f"{self.date}--{self.animal_id}_{self.ROI_id}"
-        first_trial_path = Path(self.session_path, first_trial_name + ".txt")
 
         # check whether the first trial txt exists
-        if os.path.isfile(first_trial_path):
+        if os.path.isfile(
+            Path(self.session_path, f"{first_trial_name}_000.txt")
+        ):
+            st.info(
+                ".txt files are already in the correct format; proceeding with analysis."
+            )
+
+        else:
             st.info("Renaming .txt files to the correct format.")
             # renames text files
             _ext = ".txt"
@@ -303,13 +303,6 @@ class ImagingSession(object):
                     )
             st.info(".txt files renamed; proceeding with analysis.")
 
-        elif os.path.isfile(
-            Path(self.session_path, f"{first_trial_name}_000.txt")
-        ):
-            st.info(
-                ".txt files are already in the correct format; proceeding with analysis."
-            )
-
     def get_txt_file_paths(self):
         """
         Creates list of paths for all text files, excluding solenoid info
@@ -320,11 +313,10 @@ class ImagingSession(object):
             if "solenoid" not in path.stem
         ]
 
-    def iterate_txt_files(self, presorted):
+    def iterate_txt_files(self):
         """
         Iterates through txt files, opens them as csv and converts each file to
-        dataframe, then collects everything inside a dict. Takes the presorted
-        condition to decide whether txt files need to be sorted by odor.
+        dataframe, then collects everything inside a dict.
         """
         # sorts the paths according to 000-001, etc
         paths = sorted(self.txt_paths, key=lambda x: int(x[-7:-4]))
