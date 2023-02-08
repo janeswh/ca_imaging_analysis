@@ -68,18 +68,6 @@ def pop_folder_selector():
     return dir_path
 
 
-def confirm_choice():
-    """
-    Confirms data selection before proceeding with analysis, or gives the
-    option to rerun script.
-    """
-    st.markdown(
-        "If the above selections look correct, press Analyze to "
-        "proceed with analysis. Otherwise, press Restart to restart "
-        "data selection."
-    )
-
-
 def get_main_directory():
     """
     Prompts user for the folder containing txt files to be analyzed.
@@ -114,44 +102,91 @@ def choose_sample_type():
     return choice
 
 
-def run_analysis(folder_path, date, animal, ROI, sample_type):
+def choose_run_type():
+    """
+    Asks user whether they want to export the solenoid info as csv, or do the
+    analysis as normal.
+    """
+
+    choice = st.radio(
+        "Select task:", ("Run analysis", "Export solenoid info only")
+    )
+
+    if choice == "Run analysis":
+        choice_type = "analysis"
+    elif choice == "Export solenoid info only":
+        choice_type = "solenoid"
+
+    return choice_type
+
+
+def run_analysis(folder_path, date, animal, ROI, sample_type, run_type):
     """
     Runs the analysis for one imaging session.
     """
 
     data = ImagingSession(folder_path, date, animal, ROI, sample_type)
     data.get_solenoid_order()  # gets odor order from solenoid txt file
-    data.rename_first_trial_txt()  # adds _000.txt to end of first trial file
-    data.iterate_txt_files()  # iterates over each txt file and extracts data
 
-    # sort all data by neuron/glomerulus
-    # adds progress bar
-    bar = stqdm(
-        range(data.total_n),
-        desc=f"Analyzing {sample_type}",
-    )
-    for n_count in bar:
-        raw_means, avg_means = data.collect_per_sample(
-            data.all_data_df, data.n_column_labels[n_count]
-        )
+    if run_type == "solenoid":
+        data.save_solenoid_info()  # saves solenoid order to csv
+        st.info("Solenoid info exported to csv.")
+    elif run_type == "analysis":
+        data.get_txt_file_paths()
 
-        # saves raw means to xlxs file
-        data.save_raw_sample_data(raw_means, data.n_column_labels[n_count])
+        # display error message if no txt files present
+        if len(data.txt_paths) == 0:
+            st.error(
+                "Please make sure the Ca imaging txt files are present in "
+                "the selected directory."
+            )
+        else:
+            data.rename_txt()  # adds _000.txt to end of first trial file
 
-        # performs analysis for each sample
-        analysis_df = data.analyze_signal(avg_means)
+            # checks the number of txt files; if 24, need to sort by odor; if
+            # 8, then the txt files are already combined per odor
 
-        # save avg_means to xlxs file
-        data.save_avg_means(avg_means, data.n_column_labels[n_count])
+            if len(data.txt_paths) == 8:
+                presorted = True
+            elif len(data.txt_paths) == 24:
+                presorted = False
 
-        # save analyses values to xlxs file
-        data.save_sig_analysis(analysis_df, data.n_column_labels[n_count])
+            data.iterate_txt_files(
+                presorted
+            )  # iterates over each txt file and extracts data
 
-        bar.set_description(
-            f"Analyzing {sample_type} {n_count+1}", refresh=True
-        )
+            # sort all data by neuron/glomerulus
+            # adds progress bar
+            bar = stqdm(
+                range(data.total_n),
+                desc=f"Analyzing {sample_type}",
+            )
+            for n_count in bar:
+                raw_means, avg_means = data.collect_per_sample(
+                    data.all_data_df, data.n_column_labels[n_count]
+                )
 
-    st.write("Analysis finished.")
+                # saves raw means to xlxs file
+                data.save_raw_sample_data(
+                    raw_means, data.n_column_labels[n_count]
+                )
+
+                # performs analysis for each sample
+                analysis_df = data.analyze_signal(avg_means)
+
+                # save avg_means to xlxs file
+                data.save_avg_means(avg_means, data.n_column_labels[n_count])
+
+                # save analyses values to xlxs file
+                data.save_sig_analysis(
+                    analysis_df, data.n_column_labels[n_count]
+                )
+
+                bar.set_description(
+                    f"Analyzing {sample_type} {n_count+1}", refresh=True
+                )
+
+            st.info("Analysis finished.")
 
 
 class ImagingSession(object):
@@ -161,6 +196,8 @@ class ImagingSession(object):
         self.ROI_id = ROI_id
         self.sample_type = sample_type
         self.solenoid_order = None
+        self.solenoid_df = None
+        self.txt_paths = None
         self.total_n = None
         self.n_column_labels = None
         self.num_frames = None
@@ -192,10 +229,17 @@ class ImagingSession(object):
         solenoid_order_num = re.sub("[^0-9]", "", solenoid_order_raw)
         self.solenoid_order = [int(x) for x in solenoid_order_num]
 
-    def rename_first_trial_txt(self):
+        # makes df of solenoid info for export as csv
+        solenoid_info_df = pd.DataFrame({"Odor": self.solenoid_order})
+        solenoid_info_df["Trial"] = range(1, len(solenoid_info_df) + 1)
+        solenoid_info_df.sort_values(by=["Odor"], inplace=True)
+
+        self.solenoid_df = solenoid_info_df
+
+    def rename_txt(self):
         """
-        Adds "_000.txt" to the end of the txt file name for the first trial.
-        Doesn't do anything if the file has already been renamed previously.
+        Checks to see whether the data .txt files are named correctly, if not,
+        renames them.
         """
 
         # pulls out txt file names, excluding solenoid file
@@ -208,80 +252,82 @@ class ImagingSession(object):
         # sorts the file names according to 000-001, etc
         file_names = sorted(data_files, key=lambda x: x[-7:-4])
 
-        # renames text files
-        _ext = ".txt"
-        endsWithNumber = re.compile(r"(\d+)" + (re.escape(_ext)) + "$")
-        for filename in file_names:
-            m = endsWithNumber.search(filename)
-
-            if m:
-                os.rename(
-                    Path(self.session_path, filename),
-                    Path(
-                        self.session_path,
-                        str(
-                            self.date
-                            + "--"
-                            + self.animal_id
-                            + "_"
-                            + self.ROI_id
-                            + "_"
-                            + m.group(1).zfill(3)
-                            + _ext
-                        ),
-                    ),
-                )
-
-            # this renames the first trial text file and adds 000
-            else:
-                os.rename(
-                    Path(self.session_path, filename),
-                    Path(
-                        self.session_path,
-                        str(
-                            self.date
-                            + "--"
-                            + self.animal_id
-                            + "_"
-                            + self.ROI_id
-                            + "_"
-                            + str(0).zfill(3)
-                            + _ext
-                        ),
-                    ),
-                )
-
-        pdb.set_trace()
+        # checks whether files have been renamed
         first_trial_name = f"{self.date}--{self.animal_id}_{self.ROI_id}"
         first_trial_path = Path(self.session_path, first_trial_name + ".txt")
 
         # check whether the first trial txt exists
         if os.path.isfile(first_trial_path):
-            print("Adding _000.txt to the end of the first trial txt file.")
-            os.rename(
-                first_trial_path,
-                Path(self.session_path, f"{first_trial_name}_000.txt"),
-            )
+            st.info("Renaming .txt files to the correct format.")
+            # renames text files
+            _ext = ".txt"
+            endsWithNumber = re.compile(r"(\d+)" + (re.escape(_ext)) + "$")
+            for filename in file_names:
+                m = endsWithNumber.search(filename)
+
+                if m:
+                    os.rename(
+                        Path(self.session_path, filename),
+                        Path(
+                            self.session_path,
+                            str(
+                                self.date
+                                + "--"
+                                + self.animal_id
+                                + "_"
+                                + self.ROI_id
+                                + "_"
+                                + m.group(1).zfill(3)
+                                + _ext
+                            ),
+                        ),
+                    )
+
+                # this renames the first trial text file and adds 000
+                else:
+                    os.rename(
+                        Path(self.session_path, filename),
+                        Path(
+                            self.session_path,
+                            str(
+                                self.date
+                                + "--"
+                                + self.animal_id
+                                + "_"
+                                + self.ROI_id
+                                + "_"
+                                + str(0).zfill(3)
+                                + _ext
+                            ),
+                        ),
+                    )
+            st.info(".txt files renamed; proceeding with analysis.")
+
         elif os.path.isfile(
             Path(self.session_path, f"{first_trial_name}_000.txt")
         ):
-            print("First trial txt file is already named correctly.")
+            st.info(
+                ".txt files are already in the correct format; proceeding with analysis."
+            )
 
-    def iterate_txt_files(self):
+    def get_txt_file_paths(self):
         """
-        Iterates through txt files, opens them as csv and converts each file to
-        dataframe, then collects everything inside a dict.
+        Creates list of paths for all text files, excluding solenoid info
         """
-
-        # creates list of paths for all text files, excluding solenoid info
-        txt_paths = [
+        self.txt_paths = [
             str(path)
             for path in Path(self.session_path).rglob("*.txt")
             if "solenoid" not in path.stem
         ]
 
+    def iterate_txt_files(self, presorted):
+        """
+        Iterates through txt files, opens them as csv and converts each file to
+        dataframe, then collects everything inside a dict. Takes the presorted
+        condition to decide whether txt files need to be sorted by odor.
+        """
         # sorts the paths according to 000-001, etc
-        paths = sorted(txt_paths, key=lambda x: int(x[-7:-4]))
+        paths = sorted(self.txt_paths, key=lambda x: int(x[-7:-4]))
 
         # makes one big df containing all txt data from all trials
         all_data_df = pd.DataFrame()
@@ -497,6 +543,15 @@ class ImagingSession(object):
 
         return response_analyses_df
 
+    def save_solenoid_info(self):
+        """
+        Saves the solenoid info (odor # by trial) as csv.
+        """
+        fname = f"{self.date}_{self.animal_id}_{self.ROI_id}_solenoid_info.csv"
+        csv_path = Path(self.session_path, fname)
+
+        self.solenoid_df.to_csv(csv_path, index=False)
+
     def save_raw_sample_data(self, raw_means, sheet_name):
         """
         Saves the raw means for each sample into a sheet in xlsx file.
@@ -564,6 +619,8 @@ def main():
         st.session_state.dir_path = False
     if "sample_type" not in st.session_state:
         st.session_state.sample_type = False
+    if "run_type" not in st.session_state:
+        st.session_state.run_type = False
 
     clicked = make_pick_folder_button()
 
@@ -576,18 +633,20 @@ def main():
         )
 
         # if folder has been selected properly, proceed
-        # pdb.set_trace()
-        if date:
-            st.session_state.sample_type = choose_sample_type()
-            # confirm_choice()
 
-            if st.button("Analyze"):
+        if date:
+            st.session_state.run_type = choose_run_type()
+
+            st.session_state.sample_type = choose_sample_type()
+
+            if st.button("Go!"):
                 run_analysis(
                     st.session_state.dir_path,
                     date,
                     animal_id,
                     roi,
                     st.session_state.sample_type,
+                    st.session_state.run_type,
                 )
         else:
             # tells user to pick directory properly
