@@ -16,6 +16,7 @@ def set_webapp_params():
     """
     Sets the name of the Streamlit app along with other things
     """
+    st.set_page_config(page_title="Load & Analyze .txt files")
     st.title("ROI Analysis")
 
     st.markdown(
