@@ -24,8 +24,14 @@ def main():
     set_webapp_params()
 
     # # # --- Initialising SessionState ---
-    if "browsed" not in st.session_state:
-        st.session_state.browsed = False
+    # makes the avg_means data persist
+    if "data" not in st.session_state:
+        st.session_state.data = False
+    # checks whether Load data was clicked
+    if "load_data" not in st.session_state:
+        st.session_state.load_data = False
+    if "odor_list" not in st.session_state:
+        st.session_state.load_data = False
     if "plots_list" not in st.session_state:
         st.session_state.plots_list = False
     if "selected_sample" not in st.session_state:
@@ -35,56 +41,78 @@ def main():
         label="Choose a file", label_visibility="collapsed"
     )
 
-    if uploaded_file:
-        # reads avg means into dict, with sheet names/sample # as keys, df
-        # as values
-        avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
-        st.info(
-            f"Avg means loaded successfully for {len(avg_means_dict)} samples"
-            "."
-        )
-
-        st.session_state.browsed = True
-
-        if st.button("Plot data"):
-            # or st.session_state.selected_sample:
-            # if plots haven't been generated yet, generate them
-            # if st.session_state.plots_list is False:
-            plots_list = {}
-
-            # adds progress bar
-            bar = stqdm(avg_means_dict.items(), desc="Plotting ")
-            for sample, avg_means_df in bar:
-                fig = px.line(
-                    avg_means_df,
-                    x="Frame",
-                    y=avg_means_df.columns[1:],
-                    labels={
-                        "value": "Mean amplitude",
-                        "variable": "Odor Number",
-                    },
-                )
-
-                bar.set_description(f"Plotting {sample}", refresh=True)
-                plots_list[sample] = fig
-
-            st.info("All plots generated.")
-            st.session_state.plots_list = plots_list
-
-        if st.session_state.plots_list:
-            st.session_state.selected_sample = st.select_slider(
-                "Select sample number to display its " "corresponding plot:",
-                options=avg_means_dict.keys(),
+    if uploaded_file or st.session_state.load_data:
+        if st.button("Load data"):
+            st.session_state.load_data = True
+            st.write("Testing second run")
+            # reads avg means into dict, with sheet names/sample # as keys, df
+            # as values
+            avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
+            st.info(
+                f"Avg means loaded successfully for {len(avg_means_dict)} samples"
+                "."
             )
+            st.session_state.data = avg_means_dict
 
-            if st.session_state.selected_sample:
-                st.plotly_chart(
-                    st.session_state.plots_list[
-                        st.session_state.selected_sample
-                    ]
+            # the below tries to get list of odor #s from column names
+            first_sample_df = next(iter(st.session_state.data.values()))
+
+            st.session_state.odor_list = [
+                x for x in first_sample_df.columns.values if type(x) == int
+            ]
+
+            # if load data is clicked again, doesn't display plots/slider
+            st.session_state.plots_list = False
+
+        # if data has been loaded, always show plotting buttons
+        if st.session_state.load_data:
+            if st.checkbox("Select specific odors to plot"):
+                odors_to_plot = st.multiselect(
+                    label="Odors to plot",
+                    options=st.session_state.odor_list,
+                    label_visibility="collapsed",
                 )
 
-        # st.session_state.plots_list = False
+            else:
+                odors_to_plot = st.session_state.odor_list
+
+            if st.button("Plot data"):
+                plots_list = {}
+
+                # adds progress bar
+                bar = stqdm(st.session_state.data.items(), desc="Plotting ")
+                for sample, avg_means_df in bar:
+                    fig = px.line(
+                        avg_means_df,
+                        x="Frame",
+                        y=avg_means_df.columns[odors_to_plot],
+                        labels={
+                            "value": "Mean amplitude",
+                            "variable": "Odor Number",
+                        },
+                    )
+
+                    bar.set_description(f"Plotting {sample}", refresh=True)
+                    plots_list[sample] = fig
+
+                st.info("All plots generated.")
+                st.session_state.plots_list = plots_list
+
+            # display slider and plots if plots have already been generated
+            # even if Plot data isn't clicked again
+            if st.session_state.plots_list:
+                st.session_state.selected_sample = st.select_slider(
+                    "Select sample number to display its "
+                    "corresponding plot:",
+                    options=st.session_state.data.keys(),
+                )
+
+                if st.session_state.selected_sample:
+                    st.plotly_chart(
+                        st.session_state.plots_list[
+                            st.session_state.selected_sample
+                        ]
+                    )
 
     # pdb.set_trace()
 
