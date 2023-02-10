@@ -10,13 +10,13 @@ def set_webapp_params():
     """
     Sets the name of the Streamlit app along with other things
     """
-    st.set_page_config(page_title="Plot One Imaging Session Data")
-    st.title("Plot data from one imaging session")
+    st.set_page_config(page_title="Plot Multiple Acute Imaging Data")
+    st.title("Plot data from multiple acute imaging sessions")
 
     st.markdown(
-        "Please select the .xlsx file containing the mean amplitudes that you "
-        "want to plot. The file should be named in the format "
-        "YYMMDD--123456-7-8_ROIX_avg_means.xlsx."
+        "Please select the .xlsx files containing the response properties that you "
+        "want to plot. The files should be named in the format "
+        "YYMMDD--123456-7-8_ROIX_analysis.xlsx."
     )
 
 
@@ -30,39 +30,45 @@ def main():
     # checks whether Load data was clicked
     if "load_data" not in st.session_state:
         st.session_state.load_data = False
-    if "odor_list" not in st.session_state:
-        st.session_state.load_data = False
     if "plots_list" not in st.session_state:
         st.session_state.plots_list = False
     if "selected_sample" not in st.session_state:
         st.session_state.selected_sample = False
 
-    uploaded_file = st.file_uploader(
-        label="Choose a file", label_visibility="collapsed"
+    uploaded_files = st.file_uploader(
+        label="Choose files",
+        label_visibility="collapsed",
+        accept_multiple_files=True,
     )
 
-    if uploaded_file or st.session_state.load_data:
+    if uploaded_files or st.session_state.load_data:
         if st.button("Load data"):
             st.session_state.load_data = True
 
-            # reads avg means into dict, with sheet names/sample # as keys, df
-            # as values
-            avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
-            st.info(
-                f"Avg means loaded successfully for {len(avg_means_dict)} samples"
-                "."
-            )
-            st.session_state.data = avg_means_dict
+            # makes a dict to hold data from uploaded files
+            files_data_dict = {}
 
-            # the below tries to get list of odor #s from column names
-            first_sample_df = next(iter(st.session_state.data.values()))
+            for file in uploaded_files:
+                pdb.set_trace()
+                # reads avg means into dict, with sheet names/sample # as keys, df
+                # as values
+                data_dict = pd.read_excel(file, sheet_name=None)
+                # st.info(
+                #     f"Response data loaded successfully for {len(avg_means_dict)} samples"
+                #     "."
+                # )
+                # uploaded_files[0].name.split('_')
+                # st.session_state.data = avg_means_dict
 
-            st.session_state.odor_list = [
-                x for x in first_sample_df.columns.values if type(x) == int
-            ]
+                # # the below tries to get list of odor #s from column names
+                # first_sample_df = next(iter(st.session_state.data.values()))
 
-            # if load data is clicked again, doesn't display plots/slider
-            st.session_state.plots_list = False
+                # st.session_state.odor_list = [
+                #     x for x in first_sample_df.columns.values if type(x) == int
+                # ]
+
+                # # if load data is clicked again, doesn't display plots/slider
+                # st.session_state.plots_list = False
 
         # if data has been loaded, always show plotting buttons
         if st.session_state.load_data:
@@ -72,8 +78,6 @@ def main():
                     options=st.session_state.odor_list,
                     label_visibility="collapsed",
                 )
-                if len(odors_to_plot) == 0:
-                    odors_to_plot = st.session_state.odor_list
 
             else:
                 odors_to_plot = st.session_state.odor_list
