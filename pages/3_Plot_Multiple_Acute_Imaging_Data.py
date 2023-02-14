@@ -61,6 +61,8 @@ def import_data():
     and returns only significant data and list of significant odors
     """
 
+    # makes list to hold exp names with no significant data
+    nosig_exps = []
     # makes list to hold all significant odors
     all_sig_odors = []
 
@@ -114,8 +116,10 @@ def import_data():
             all_sig_odors.append(sig_odors)
 
         sig_data_dict[exp_name] = sig_data_df
+        if sig_data_df.empty:
+            nosig_exps.append(exp_name)
 
-    return all_sig_odors, sig_data_dict
+    return nosig_exps, all_sig_odors, sig_data_dict
 
 
 def main():
@@ -126,7 +130,7 @@ def main():
         if st.button("Load data"):
             st.session_state.load_data = True
 
-            odors_list, st.session_state.sig_data = import_data()
+            nosig_exps, odors_list, st.session_state.sig_data = import_data()
 
             st.info(
                 f"Response data loaded successfully for "
@@ -138,24 +142,35 @@ def main():
                 odor for sublist in odors_list for odor in sublist
             ]
 
-            # gets unique significant odors and puts them in order
-            st.session_state.sig_odors = list(dict.fromkeys(flat_odors_list))
-            st.session_state.sig_odors.sort()
+            if len(nosig_exps) == len(st.session_state.files):
+                st.error(
+                    "None of the uploaded experiments have significant "
+                    " odor responses. Please upload data for experiments with "
+                    " significant responses to plot the response measurements."
+                )
+                # st.session_state.load_data = False
+            else:
+                # gets unique significant odors and puts them in order
+                st.session_state.sig_odors = list(
+                    dict.fromkeys(flat_odors_list)
+                )
+                st.session_state.sig_odors.sort()
 
-        # uploaded_files[0].name.split('_')
-        # st.session_state.data = avg_means_dict
+            # uploaded_files[0].name.split('_')
+            # st.session_state.data = avg_means_dict
 
-        # # the below tries to get list of odor #s from column names
-        # first_sample_df = next(iter(st.session_state.data.values()))
+            # # the below tries to get list of odor #s from column names
+            # first_sample_df = next(iter(st.session_state.data.values()))
 
-        # st.session_state.odor_list = [
-        #     x for x in first_sample_df.columns.values if type(x) == int
-        # ]
+            # st.session_state.odor_list = [
+            #     x for x in first_sample_df.columns.values if type(x) == int
+            # ]
 
-        # # if load data is clicked again, doesn't display plots/slider
-        # st.session_state.plots_list = False
+            # # if load data is clicked again, doesn't display plots/slider
+            # st.session_state.plots_list = False
 
-        # if data has been loaded, always show plotting buttons
+            # if data has been loaded, always show plotting buttons
+
         if st.session_state.load_data:
             if st.button("Plot data"):
                 plots_list = {}
@@ -177,8 +192,20 @@ def main():
                 ]
 
                 # adds progress bar
+
                 odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
+
                 for odor in odor_bar:
+                    # makes list of experiments that have sig responses for
+                    # the odor
+
+                    sig_odor_exps = []
+                    for exp_ct, experiment in enumerate(
+                        st.session_state.sig_data.keys()
+                    ):
+                        if odor in st.session_state.sig_data[experiment]:
+                            sig_odor_exps.append(experiment)
+
                     odor_fig = make_subplots(
                         rows=1,
                         cols=4,
@@ -186,13 +213,11 @@ def main():
                         x_title=odor,
                     )
 
-                    for exp_ct, experiment in enumerate(
-                        st.session_state.sig_data.keys()
-                    ):
-                        # gets the data for the specific odor for that exp
-                        exp_odor_df = st.session_state.sig_data[experiment][
-                            odor
-                        ]
+                    for exp_ct, sig_experiment in enumerate(sig_odor_exps):
+                        exp_odor_df = st.session_state.sig_data[
+                            sig_experiment
+                        ][odor]
+                        # pdb.set_trace()
 
                         # plots one measurement per subplot
                         for measure_ct, measure in enumerate(
@@ -200,7 +225,7 @@ def main():
                         ):
                             odor_fig.add_trace(
                                 go.Box(
-                                    x=[experiment]
+                                    x=[sig_experiment]
                                     * len(exp_odor_df.loc[measure].values),
                                     y=exp_odor_df.loc[measure].values.tolist(),
                                     line=dict(color="rgba(0,0,0,0)"),
@@ -215,32 +240,43 @@ def main():
                                         ),
                                         size=12,
                                     ),
-                                    name=experiment,
+                                    name=sig_experiment,
                                 ),
                                 row=1,
                                 col=measure_ct + 1,
                             )
 
                             # add horizontal line for mean
-                            line_increment = (
+                            line_width = (
                                 1 / (len(st.session_state.sig_data.keys()))
                             ) / 2
 
-                            start = 0.05
+                            interval = (
+                                1 / (len(st.session_state.sig_data.keys()))
+                            ) / 2
+
+                            start = (
+                                1 / (len(st.session_state.sig_data.keys()))
+                            ) / 4
 
                             odor_fig.add_shape(
                                 type="line",
                                 line=dict(
-                                    color=line_color_scale[exp_ct], width=4
+                                    color=line_color_scale[exp_ct],
+                                    width=4,
                                 ),
+                                xref="x domain",
+                                x0=start
+                                if exp_ct == 0
+                                else start + exp_ct * (interval + line_width),
+                                x1=start + line_width
+                                if exp_ct == 0
+                                else start
+                                + exp_ct * (interval + line_width)
+                                + line_width,
                                 # xref="paper",
-                                # x0=exp_ct * line_increment,
-                                # x1=(exp_ct * line_increment) + line_increment,
-                                xref="paper",
-                                x0=start + (exp_ct * line_increment),
-                                x1=start
-                                + (exp_ct * line_increment)
-                                + line_increment,
+                                # x0=0 if exp_ct == 0 else (exp_ct * line_width),
+                                # x1=start + (exp_ct * line_width) + line_width,
                                 y0=exp_odor_df.loc[measure].values.mean(),
                                 y1=exp_odor_df.loc[measure].values.mean(),
                                 row=1,
@@ -264,15 +300,16 @@ def main():
                                 col=measure_ct + 1,
                             )
 
-                            # if measure == "Latency (s)":
-                            #     odor_fig.update_yaxes(
-                            #         rangemode="tozero",
-                            #         row=1,
-                            #         col=4,
-                            #     )
-                    odor_fig.update_layout(
-                        legend_title_text="Experiment ID<br />",
-                    )
+                        # if measure == "Latency (s)":
+                        #     odor_fig.update_yaxes(
+                        #         rangemode="tozero",
+                        #         row=1,
+                        #         col=4,
+                        #     )
+                        odor_fig.update_layout(
+                            boxgap=0.4,
+                            legend_title_text="Experiment ID<br />",
+                        )
                     odor_fig.show()
                     pdb.set_trace()
 
@@ -307,8 +344,6 @@ def main():
                             st.session_state.selected_sample
                         ]
                     )
-
-    # pdb.set_trace()
 
 
 if __name__ == "__main__":
