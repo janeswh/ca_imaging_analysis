@@ -45,8 +45,8 @@ def initialize_states():
 
     if "plots_list" not in st.session_state:
         st.session_state.plots_list = False
-    if "selected_sample" not in st.session_state:
-        st.session_state.selected_sample = False
+    if "selected_odor" not in st.session_state:
+        st.session_state.selected_odor = False
 
     st.session_state.files = st.file_uploader(
         label="Choose files",
@@ -156,16 +156,6 @@ def main():
                 )
                 st.session_state.sig_odors.sort()
 
-            # uploaded_files[0].name.split('_')
-            # st.session_state.data = avg_means_dict
-
-            # # the below tries to get list of odor #s from column names
-            # first_sample_df = next(iter(st.session_state.data.values()))
-
-            # st.session_state.odor_list = [
-            #     x for x in first_sample_df.columns.values if type(x) == int
-            # ]
-
             # # if load data is clicked again, doesn't display plots/slider
             # st.session_state.plots_list = False
 
@@ -210,14 +200,13 @@ def main():
                         rows=1,
                         cols=4,
                         horizontal_spacing=0.1,
-                        x_title=odor,
+                        x_title="Experiment ID",
                     )
 
                     for exp_ct, sig_experiment in enumerate(sig_odor_exps):
                         exp_odor_df = st.session_state.sig_data[
                             sig_experiment
                         ][odor]
-                        # pdb.set_trace()
 
                         # plots one measurement per subplot
                         for measure_ct, measure in enumerate(
@@ -247,17 +236,11 @@ def main():
                             )
 
                             # add horizontal line for mean
-                            line_width = (
-                                1 / (len(st.session_state.sig_data.keys()))
-                            ) / 2
+                            line_width = (1 / len(sig_odor_exps)) / 2
 
-                            interval = (
-                                1 / (len(st.session_state.sig_data.keys()))
-                            ) / 2
+                            interval = (1 / len(sig_odor_exps)) / 2
 
-                            start = (
-                                1 / (len(st.session_state.sig_data.keys()))
-                            ) / 4
+                            start = (1 / len(sig_odor_exps)) / 4
 
                             odor_fig.add_shape(
                                 type="line",
@@ -300,31 +283,23 @@ def main():
                                 col=measure_ct + 1,
                             )
 
-                        # if measure == "Latency (s)":
-                        #     odor_fig.update_yaxes(
-                        #         rangemode="tozero",
-                        #         row=1,
-                        #         col=4,
-                        #     )
-                        odor_fig.update_layout(
-                            boxgap=0.4,
-                            legend_title_text="Experiment ID<br />",
-                        )
-                    odor_fig.show()
-                    pdb.set_trace()
-
-                    # fig = px.line(
-                    #     avg_means_df,
-                    #     x="Frame",
-                    #     y=avg_means_df.columns[odors_to_plot],
-                    #     labels={
-                    #         "value": "Mean amplitude",
-                    #         "variable": "Odor Number",
-                    #     },
-                    # )
-
-                    # bar.set_description(f"Plotting {sample}", refresh=True)
-                    # plots_list[sample] = fig
+                            # if measure == "Latency (s)":
+                            #     odor_fig.update_yaxes(
+                            #         rangemode="tozero",
+                            #         row=1,
+                            #         col=4,
+                            #     )
+                            odor_fig.update_layout(
+                                boxgap=0.4,
+                                title={
+                                    "text": odor,
+                                    "x": 0.4,
+                                    "xanchor": "center",
+                                },
+                                legend_title_text="Experiment ID<br />",
+                            )
+                    odor_bar.set_description(f"Plotting {odor}", refresh=True)
+                    plots_list[odor] = odor_fig
 
                 st.info("All plots generated.")
                 st.session_state.plots_list = plots_list
@@ -332,16 +307,15 @@ def main():
             # display slider and plots if plots have already been generated
             # even if Plot data isn't clicked again
             if st.session_state.plots_list:
-                st.session_state.selected_sample = st.select_slider(
-                    "Select sample number to display its "
-                    "corresponding plot:",
-                    options=st.session_state.data.keys(),
+                st.session_state.selected_odor = st.select_slider(
+                    "Select odor number to display its " "corresponding plot:",
+                    options=st.session_state.sig_odors,
                 )
 
-                if st.session_state.selected_sample:
+                if st.session_state.selected_odor:
                     st.plotly_chart(
                         st.session_state.plots_list[
-                            st.session_state.selected_sample
+                            st.session_state.selected_odor
                         ]
                     )
 
