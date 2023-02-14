@@ -357,17 +357,19 @@ class ImagingSession(object):
 
             all_data_df = pd.concat([all_data_df, df], axis=0)
 
-        # replace column names with sample type
-        all_data_df.columns = all_data_df.columns.str.replace(
-            "Mean", f"{self.sample_type} "
-        )
+        # keep first tree column names
+        old_cols = all_data_df.columns[:3].tolist()
+        mean_cols = len(all_data_df.columns) - 3
+
+        # make new column names based on sample type
+        new_cols = [f"{self.sample_type} {i}" for i in range(1, mean_cols + 1)]
+
+        all_data_df.columns = old_cols + new_cols
 
         self.total_n = sum(
             self.sample_type in col for col in all_data_df.columns
         )
-        self.n_column_labels = [
-            col for col in all_data_df.columns if self.sample_type in col
-        ]
+        self.n_column_labels = new_cols
 
         self.all_data_df = all_data_df
 
