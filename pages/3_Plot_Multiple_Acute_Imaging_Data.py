@@ -175,7 +175,9 @@ def main():
             st.session_state.plots_list = False
 
         # if data has been loaded, always show plotting buttons
-        if st.session_state.load_data:
+        if st.session_state.load_data and len(
+            st.session_state.nosig_exps
+        ) != len(st.session_state.files):
             if st.button("Plot data"):
                 # plots_list = {}
                 plots_list = defaultdict(dict)
@@ -218,12 +220,22 @@ def main():
                             exp_odor_df = st.session_state.sig_data[
                                 sig_experiment
                             ][odor]
+                            # if odor == "Odor 4":
+                            #     pdb.set_trace()
 
                             measure_fig.add_trace(
                                 go.Box(
                                     x=[sig_experiment]
-                                    * len(exp_odor_df.loc[measure].values),
-                                    y=exp_odor_df.loc[measure].values.tolist(),
+                                    * len(exp_odor_df.loc[measure].values)
+                                    if isinstance(
+                                        exp_odor_df.loc[measure], pd.Series
+                                    )
+                                    else [sig_experiment],
+                                    y=exp_odor_df.loc[measure].values.tolist()
+                                    if isinstance(
+                                        exp_odor_df.loc[measure], pd.Series
+                                    )
+                                    else [exp_odor_df.loc[measure]],
                                     line=dict(color="rgba(0,0,0,0)"),
                                     fillcolor="rgba(0,0,0,0)",
                                     boxpoints="all",
@@ -247,27 +259,30 @@ def main():
 
                             start = (1 / len(sig_odor_exps)) / 4
 
-                            measure_fig.add_shape(
-                                type="line",
-                                line=dict(
-                                    color=line_color_scale[exp_ct],
-                                    width=4,
-                                ),
-                                xref="x domain",
-                                x0=start
-                                if exp_ct == 0
-                                else start + exp_ct * (interval + line_width),
-                                x1=start + line_width
-                                if exp_ct == 0
-                                else start
-                                + exp_ct * (interval + line_width)
-                                + line_width,
-                                # xref="paper",
-                                # x0=0 if exp_ct == 0 else (exp_ct * line_width),
-                                # x1=start + (exp_ct * line_width) + line_width,
-                                y0=exp_odor_df.loc[measure].values.mean(),
-                                y1=exp_odor_df.loc[measure].values.mean(),
-                            )
+                            # only adds mean line if there is more than one pt
+                            if isinstance(exp_odor_df.loc[measure], pd.Series):
+                                measure_fig.add_shape(
+                                    type="line",
+                                    line=dict(
+                                        color=line_color_scale[exp_ct],
+                                        width=4,
+                                    ),
+                                    xref="x domain",
+                                    x0=start
+                                    if exp_ct == 0
+                                    else start
+                                    + exp_ct * (interval + line_width),
+                                    x1=start + line_width
+                                    if exp_ct == 0
+                                    else start
+                                    + exp_ct * (interval + line_width)
+                                    + line_width,
+                                    # xref="paper",
+                                    # x0=0 if exp_ct == 0 else (exp_ct * line_width),
+                                    # x1=start + (exp_ct * line_width) + line_width,
+                                    y0=exp_odor_df.loc[measure].values.mean(),
+                                    y1=exp_odor_df.loc[measure].values.mean(),
+                                )
 
                             #  below is code from stack overflow to hide duplicate legends
                             names = set()
@@ -318,7 +333,7 @@ def main():
             # display slider and plots if plots have already been generated
             # even if Plot data isn't clicked again
             if st.session_state.plots_list:
-                st.session_state.selected_odor = st.select_slider(
+                st.session_state.selected_odor = st.selectbox(
                     "Select odor number to display its corresponding plots:",
                     options=st.session_state.sig_odors,
                 )
