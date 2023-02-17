@@ -19,6 +19,17 @@ def set_webapp_params():
         "YYMMDD--123456-7-8_ROIX_avg_means.xlsx."
     )
 
+    st.session_state.odor_colors = {
+        "Odor 1": "#1A6FF2",
+        "Odor 2": "#444655",
+        "Odor 3": "#A9AABC",
+        "Odor 4": "#E41E4F",
+        "Odor 5": "#FF6580",
+        "Odor 6": "#29E990",
+        "Odor 7": "#AA53C1",
+        "Odor 8": "#00C7FF",
+    }
+
 
 def main():
     set_webapp_params()
@@ -84,17 +95,44 @@ def main():
                 # adds progress bar
                 bar = stqdm(st.session_state.data.items(), desc="Plotting ")
                 for sample, avg_means_df in bar:
-                    fig = px.line(
-                        avg_means_df,
-                        x="Frame",
-                        y=avg_means_df.columns[odors_to_plot],
-                        labels={
-                            "value": "Mean amplitude",
-                            "variable": "Odor Number",
-                        },
+                    fig = go.Figure()
+
+                    # fig = px.line(
+                    #     avg_means_df,
+                    #     x="Frame",
+                    #     y=avg_means_df.columns[odors_to_plot],
+                    #     labels={
+                    #         "value": "Mean amplitude",
+                    #         "variable": "Odor Number",
+                    #     },
+                    # )
+
+                    for odor in odors_to_plot:
+                        fig.add_trace(
+                            go.Scatter(
+                                x=avg_means_df["Frame"],
+                                y=avg_means_df[odor],
+                                line=dict(
+                                    color=st.session_state.odor_colors[
+                                        f"Odor {odor}"
+                                    ]
+                                ),
+                                name=odor,
+                            )
+                        )
+
+                    fig.update_xaxes(
+                        title_text="Frame",
                     )
 
+                    fig.update_yaxes(
+                        title_text="Mean amplitude",
+                    )
+
+                    fig.update_layout(legend_title_text="Odor Number<br />")
+
                     bar.set_description(f"Plotting {sample}", refresh=True)
+
                     plots_list[sample] = fig
 
                 st.info("All plots generated.")
