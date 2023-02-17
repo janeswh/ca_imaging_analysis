@@ -632,7 +632,8 @@ def main():
     set_webapp_params()
 
     # # # --- Initialising SessionState ---
-
+    if "manual_path" not in st.session_state:
+        st.session_state.manual_path = False
     if "dir_path" not in st.session_state:
         st.session_state.dir_path = False
     if "sample_type" not in st.session_state:
@@ -643,9 +644,17 @@ def main():
         st.session_state.drop_trial = False
 
     clicked = make_pick_folder_button()
-
     if clicked:
         st.session_state.dir_path = pop_folder_selector()
+
+    select_manual = st.button("Enter folder path manually")
+    if select_manual or st.session_state.manual_path:
+        st.session_state.manual_path = True
+        st.session_state.dir_path = st.text_input(
+            "Enter full path of the folder, e.g. "
+            "/Users/Bob/Experiments/2019_GCaMP6s/220101--123456-7-8_ROI1 "
+            " and make sure there are no spaces in the path."
+        )
 
     if st.session_state.dir_path:
         date, animal_id, roi = get_selected_folder_info(
