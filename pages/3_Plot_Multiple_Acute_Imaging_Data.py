@@ -46,6 +46,10 @@ def initialize_states():
     if "nosig_exps" not in st.session_state:
         st.session_state.no_sig_exps = False
 
+    # assigns a color to each exp session with significant responses
+    if "sig_exp_colors" not in st.session_state:
+        st.session_state.sig_exp_colors = False
+
     if "plots_list" not in st.session_state:
         st.session_state.plots_list = False
     if "selected_odor" not in st.session_state:
@@ -147,6 +151,7 @@ def main():
                 st.session_state.sig_data,
             ) = import_data()
 
+            # assign colors to experiments using st.session_state.sig_data.keys()
             st.info(
                 f"Response data loaded successfully for "
                 f"{len(st.session_state.files)} experiments."
