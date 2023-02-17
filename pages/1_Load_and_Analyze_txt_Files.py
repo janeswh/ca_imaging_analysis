@@ -674,6 +674,10 @@ def main():
                         "there are multiple, e.g. 1,2,5,6"
                     )
 
+            st.warning(
+                "If this is a re-run, please delete all the .xlsx files "
+                " from the previous run through before clicking Go!"
+            )
             if st.button("Go!"):
                 run_analysis(
                     st.session_state.dir_path,
