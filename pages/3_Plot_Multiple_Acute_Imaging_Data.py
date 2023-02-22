@@ -174,6 +174,335 @@ def import_data():
     return nosig_exps, all_sig_odors, sig_data_dict, sorted_sig_data_dict
 
 
+def get_odor_data(odor):
+    """
+    Collects the data for odors with significant responses
+    """
+
+    # makes list of experiments that have sig responses for
+    # the odor
+    sig_odor_exps = {}
+
+    # makes list of number of ROIs per animal
+    all_roi_counts = []
+
+    # for exp_ct, experiment in enumerate(
+    #     st.session_state.sig_data.keys()
+    # ):
+
+    for animal_id in st.session_state.sorted_sig_data:
+        animal_exp_list = []
+
+        for exp_ct, experiment in enumerate(
+            st.session_state.sorted_sig_data[animal_id].keys()
+        ):
+            if odor in st.session_state.sorted_sig_data[animal_id][experiment]:
+                animal_exp_list.append(experiment)
+                sig_odor_exps[animal_id] = animal_exp_list
+
+        roi_count = len(animal_exp_list)
+        all_roi_counts.append(roi_count)
+
+    total_animals = len(sig_odor_exps)
+
+    return sig_odor_exps, all_roi_counts, total_animals
+
+
+def get_plot_params(all_roi_counts):
+    """
+    Counts the number of ROIs (columns) and animals plotted for each odor
+    """
+
+    # determines whether plot has groups for multiple ROI
+    # also counts total number of columns - if groups are present,
+    # animals with one ROI still have two columns
+
+    if 2 in all_roi_counts:
+        plot_groups = True
+        zeroes = all_roi_counts.count(0)
+        total_cols = (len(all_roi_counts) - zeroes) * 2
+
+    else:
+        plot_groups = False
+        total_cols = sum(all_roi_counts)
+
+    return plot_groups, total_cols
+
+
+def position_mean_line(
+    total_animals, total_cols, plot_groups, animal_ct, exp_ct
+):
+    """
+    Sets the positioning values for mean lines
+    """
+
+    line_width = (1 / total_animals) / 6
+    within_group_interval = (1 / total_animals) / 8
+    between_group_interval = (1 / total_animals) / 1.95
+
+    # line_width = (1 / total_cols) / 3
+    # within_group_interval = (1 / total_cols) / 4
+    # between_group_interval = (1 / total_cols) / 1
+
+    if plot_groups:
+        start = (1 / total_cols) / 1.6
+    else:
+        start = (1 / total_cols) / 2.4
+
+    animal1_roi1_x0 = start
+    animal1_roi1_x1 = start + line_width
+    animal1_roi2_x0 = animal1_roi1_x1 + within_group_interval
+    animal1_roi2_x1 = animal1_roi2_x0 + line_width
+
+    # sets positioning variable depending on animal
+    # and exp count
+
+    # # this is for the very first data point
+    if animal_ct == 0:
+        if exp_ct == 0:
+            x0 = animal1_roi1_x0
+            x1 = animal1_roi1_x1
+        else:
+            x0 = animal1_roi2_x0
+            x1 = animal1_roi2_x1
+
+        # for the first data point in subsequent
+        # animals
+
+    else:
+        if exp_ct == 0:
+            # x0 = (
+            #     animal_1_roi2_x1
+            #     + (
+            #         animal_ct
+            #         * between_group_interval
+            #     )
+            #     + (
+            #         (animal_ct - 1)
+            #         * (line_width * 2)
+            #     )
+            # ) + (
+            #     (animal_ct - 1)
+            #     * within_group_interval
+            # )
+
+            # x1 = x0 + line_width
+            if plot_groups:
+                x0 = animal1_roi2_x1 + (
+                    animal_ct * (between_group_interval + (line_width))
+                    + ((animal_ct - 1) * (within_group_interval))
+                )
+
+            else:
+                x0 = animal1_roi1_x1 + (
+                    animal_ct * (between_group_interval + line_width)
+                )
+            x1 = x0 + line_width
+
+        else:
+            # x0 = (
+            #     (
+            #         animal_1_roi2_x1
+            #         + (
+            #             animal_ct
+            #             * between_group_interval
+            #         )
+            #         + (
+            #             (animal_ct - 1)
+            #             * (line_width * 2)
+            #         )
+            #     )
+            #     + (
+            #         (animal_ct - 1)
+            #         * within_group_interval
+            #     )
+            #     + line_width
+            #     + within_group_interval
+            # )
+
+            x0 = (
+                animal1_roi2_x1
+                + (
+                    animal_ct
+                    - 1
+                    * (
+                        between_group_interval
+                        + (line_width * 2)
+                        + within_group_interval
+                    )
+                )
+                + line_width
+                + within_group_interval
+            )
+
+            x1 = x0 + line_width
+
+    return x0, x1
+
+
+def plot_odor_measure_fig(
+    sig_odor_exps,
+    odor,
+    measure,
+    color_scale,
+    total_animals,
+    plot_groups,
+    total_cols,
+):
+    """
+    Plots the analysis values for specified odor and measurement
+    """
+    measure_fig = go.Figure()
+
+    for animal_ct, animal_id in enumerate(sig_odor_exps.keys()):
+        for exp_ct, sig_experiment in enumerate(sig_odor_exps[animal_id]):
+            exp_odor_df = st.session_state.sorted_sig_data[animal_id][
+                sig_experiment
+            ][odor]
+
+            measure_fig.add_trace(
+                go.Box(
+                    x=[animal_id] * len(exp_odor_df.loc[measure].values)
+                    if isinstance(exp_odor_df.loc[measure], pd.Series)
+                    else [animal_id],
+                    y=exp_odor_df.loc[measure].values.tolist()
+                    if isinstance(exp_odor_df.loc[measure], pd.Series)
+                    else [exp_odor_df.loc[measure]],
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fillcolor="rgba(0,0,0,0)",
+                    boxpoints="all",
+                    pointpos=0,
+                    marker_color=color_scale["marker"][animal_ct + 1][exp_ct],
+                    marker=dict(
+                        # opacity=0.5,
+                        line=dict(
+                            color=color_scale["lines"][animal_ct + 1][exp_ct],
+                            width=2,
+                        ),
+                        size=12,
+                    ),
+                    name=sig_experiment,
+                    offsetgroup=exp_ct,
+                    legendgroup=animal_ct,
+                ),
+            )
+
+            # only adds mean line if there is more than one pt
+            if isinstance(exp_odor_df.loc[measure], pd.Series):
+                measure_fig = add_mean_line(
+                    measure_fig,
+                    total_animals,
+                    total_cols,
+                    plot_groups,
+                    animal_ct,
+                    exp_ct,
+                    color_scale,
+                    measure,
+                    exp_odor_df,
+                )
+
+    return measure_fig
+
+
+def add_mean_line(
+    fig,
+    total_animals,
+    total_cols,
+    plot_groups,
+    animal_ct,
+    exp_ct,
+    color_scale,
+    measure,
+    exp_odor_df,
+):
+    """
+    Adds mean line to each dataset
+    """
+    x0, x1 = position_mean_line(
+        total_animals,
+        total_cols,
+        plot_groups,
+        animal_ct,
+        exp_ct,
+    )
+
+    fig.add_shape(
+        type="line",
+        line=dict(
+            color=color_scale["lines"][animal_ct + 1][exp_ct],
+            width=4,
+        ),
+        xref="x domain",
+        x0=x0,
+        x1=x1,
+        y0=exp_odor_df.loc[measure].values.mean(),
+        y1=exp_odor_df.loc[measure].values.mean(),
+    )
+    # if (
+    #     odor == "Odor 7"
+    #     and measure
+    #     == "Blank-subtracted DeltaF/F(%)"
+    # ):
+    #     print("printing positions")
+    #     print(sig_experiment)
+    #     print(f"animal_count={animal_ct}")
+    #     print(f"exp_count={exp_ct}")
+    #     print(f"start={start:.2f}")
+    #     print(f"line_width={line_width:.2f}")
+    #     print(
+    #         f"within-group={within_group_interval:.2f}"
+    #     )
+    #     print(
+    #         f"between_group={between_group_interval:.2f}"
+    #     )
+    #     print(
+    #         f"animal1_roi2_x1={animal1_roi2_x1:.2f}"
+    #     )
+    #     print(f"x0={x0:.2f}")
+    #     print(f"x1={x1:.2f}")
+    #     print("done")
+
+    return fig
+
+
+def format_fig(fig, measure):
+    """
+    Formats the legend, axes, and titles of the fig
+    """
+    #  below is code from stack overflow to hide duplicate legends
+    names = set()
+    fig.for_each_trace(
+        lambda trace: trace.update(showlegend=False)
+        if (trace.name in names)
+        else names.add(trace.name)
+    )
+
+    fig.update_xaxes(showticklabels=True, title_text="Animal ID")
+
+    fig.update_yaxes(
+        title_text=measure,
+    )
+
+    if measure == "Time to peak (s)":
+        fig.update_yaxes(
+            rangemode="tozero",
+        )
+
+    fig.update_layout(
+        boxmode="group",
+        boxgap=0.4,
+        title={
+            "text": measure,
+            "x": 0.4,
+            "xanchor": "center",
+        },
+        legend_title_text="Experiment ID<br />",
+        showlegend=True,
+    )
+
+    return fig
+
+
 def main():
     set_webapp_params()
     initialize_states()
@@ -225,22 +554,6 @@ def main():
                 # plots_list = {}
                 plots_list = defaultdict(dict)
 
-                # line_color_scale = [
-                #     "#D00000",
-                #     "#FFBA08",
-                #     "#3F88C5",
-                #     "#032B43",
-                #     "#136F63",
-                # ]
-
-                # fill_color_scale = [
-                #     "#FF5C5C",
-                #     "#FFE299",
-                #     "#A1C5E3",
-                #     "#B1DFFC",
-                #     "#85EADD",
-                # ]
-
                 color_scale = set_color_scales()
 
                 # adds progress bar
@@ -248,239 +561,29 @@ def main():
                 odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
 
                 for odor in odor_bar:
-                    # makes list of experiments that have sig responses for
-                    # the odor
-                    sig_odor_exps = {}
+                    (
+                        sig_odor_exps,
+                        all_roi_counts,
+                        total_animals,
+                    ) = get_odor_data(odor)
 
-                    # gets total # of significant experiments/odor
-
-                    total_exps = 0
-                    # for exp_ct, experiment in enumerate(
-                    #     st.session_state.sig_data.keys()
-                    # ):
-
-                    for animal_id in st.session_state.sorted_sig_data:
-                        animal_exp_list = []
-                        for exp_ct, experiment in enumerate(
-                            st.session_state.sorted_sig_data[animal_id].keys()
-                        ):
-                            if (
-                                odor
-                                in st.session_state.sorted_sig_data[animal_id][
-                                    experiment
-                                ]
-                            ):
-                                animal_exp_list.append(experiment)
-                                total_exps += 1
-                                sig_odor_exps[animal_id] = animal_exp_list
-
-                    total_animals = len(sig_odor_exps)
+                    plot_groups, total_cols = get_plot_params(all_roi_counts)
 
                     for measure in st.session_state.measures:
-                        measure_fig = go.Figure()
+                        measure_fig = plot_odor_measure_fig(
+                            sig_odor_exps,
+                            odor,
+                            measure,
+                            color_scale,
+                            total_animals,
+                            plot_groups,
+                            total_cols,
+                        )
 
-                        for animal_ct, animal_id in enumerate(
-                            sig_odor_exps.keys()
-                        ):
-                            for exp_ct, sig_experiment in enumerate(
-                                sig_odor_exps[animal_id]
-                            ):
-                                # exp_odor_df = st.session_state.sorted_sig_data[
-                                #     sig_experiment
-                                # ][odor]
-                                # pdb.set_trace()
+                        measure_fig = format_fig(measure_fig, measure)
 
-                                exp_odor_df = st.session_state.sorted_sig_data[
-                                    animal_id
-                                ][sig_experiment][odor]
-
-                                # if odor == "Odor 4":
-                                #     pdb.set_trace()
-                                # pdb.set_trace()
-                                measure_fig.add_trace(
-                                    go.Box(
-                                        x=[animal_id]
-                                        * len(exp_odor_df.loc[measure].values)
-                                        if isinstance(
-                                            exp_odor_df.loc[measure], pd.Series
-                                        )
-                                        else [animal_id],
-                                        y=exp_odor_df.loc[
-                                            measure
-                                        ].values.tolist()
-                                        if isinstance(
-                                            exp_odor_df.loc[measure], pd.Series
-                                        )
-                                        else [exp_odor_df.loc[measure]],
-                                        line=dict(color="rgba(0,0,0,0)"),
-                                        fillcolor="rgba(0,0,0,0)",
-                                        boxpoints="all",
-                                        pointpos=0,
-                                        marker_color=color_scale["marker"][
-                                            animal_ct + 1
-                                        ][exp_ct],
-                                        marker=dict(
-                                            line=dict(
-                                                color=color_scale["lines"][
-                                                    animal_ct + 1
-                                                ][exp_ct],
-                                                width=2,
-                                            ),
-                                            size=12,
-                                        ),
-                                        name=sig_experiment,
-                                        offsetgroup=exp_ct,
-                                        legendgroup=animal_ct,
-                                    ),
-                                )
-
-                                # add horizontal line for mean
-                                line_width = (1 / total_animals) / 6
-                                within_group_interval = (1 / total_animals) / 8
-                                between_group_interval = (
-                                    1 / total_animals
-                                ) / 1.95
-
-                                start = (1 / total_animals) / 3.3
-                                animal1_roi1_x0 = start
-                                animal1_roi1_x1 = start + line_width
-                                animal1_roi2_x0 = (
-                                    animal1_roi1_x1 + within_group_interval
-                                )
-                                animal_1_roi2_x1 = animal1_roi2_x0 + line_width
-
-                                # sets positioning variable depending on animal
-                                # and exp count
-
-                                # this is for the very first data point
-                                if animal_ct == 0:
-                                    if exp_ct == 0:
-                                        x0 = animal1_roi1_x0
-                                        x1 = animal1_roi1_x1
-                                    else:
-                                        x0 = animal1_roi2_x0
-                                        x1 = animal_1_roi2_x1
-
-                                    # for the first data point in subsequent
-                                    # animals
-
-                                else:
-                                    if exp_ct == 0:
-                                        x0 = (
-                                            animal_1_roi2_x1
-                                            + (
-                                                animal_ct
-                                                * between_group_interval
-                                            )
-                                            + (
-                                                (animal_ct - 1)
-                                                * (line_width * 2)
-                                            )
-                                        ) + (
-                                            (animal_ct - 1)
-                                            * within_group_interval
-                                        )
-
-                                        x1 = x0 + line_width
-
-                                    else:
-                                        x0 = (
-                                            (
-                                                animal_1_roi2_x1
-                                                + (
-                                                    animal_ct
-                                                    * between_group_interval
-                                                )
-                                                + (
-                                                    (animal_ct - 1)
-                                                    * (line_width * 2)
-                                                )
-                                            )
-                                            + within_group_interval
-                                            + line_width
-                                        )
-
-                                        x1 = x0 + line_width
-
-                                # only adds mean line if there is more than one pt
-                                if isinstance(
-                                    exp_odor_df.loc[measure], pd.Series
-                                ):
-                                    measure_fig.add_shape(
-                                        type="line",
-                                        line=dict(
-                                            color=color_scale["lines"][
-                                                animal_ct + 1
-                                            ][exp_ct],
-                                            width=4,
-                                        ),
-                                        xref="x domain",
-                                        x0=x0,
-                                        x1=x1,
-                                        y0=exp_odor_df.loc[
-                                            measure
-                                        ].values.mean(),
-                                        y1=exp_odor_df.loc[
-                                            measure
-                                        ].values.mean(),
-                                    )
-                                    if (
-                                        odor == "Odor 1"
-                                        and measure
-                                        == "Blank-subtracted DeltaF/F(%)"
-                                    ):
-                                        print("printing positions")
-                                        print(sig_experiment)
-                                        print(f"start={start:.2f}")
-                                        print(f"line_width={line_width:.2f}")
-                                        print(
-                                            f"within-group={within_group_interval:.2f}"
-                                        )
-                                        print(
-                                            f"between_group={between_group_interval:.2f}"
-                                        )
-                                        print(
-                                            f"animal_1_roi2_x1={animal_1_roi2_x1:.2f}"
-                                        )
-                                        print(f"x0={x0:.2f}")
-                                        print(f"x1={x1:.2f}")
-                                        print("done")
-
-                            # measure_fig.show()
-                            # pdb.set_trace()
-
-                            #  below is code from stack overflow to hide duplicate legends
-                            names = set()
-                            measure_fig.for_each_trace(
-                                lambda trace: trace.update(showlegend=False)
-                                if (trace.name in names)
-                                else names.add(trace.name)
-                            )
-
-                            measure_fig.update_xaxes(showticklabels=True)
-
-                            measure_fig.update_yaxes(
-                                title_text=measure,
-                            )
-
-                            if measure == "Time to peak (s)":
-                                measure_fig.update_yaxes(
-                                    rangemode="tozero",
-                                )
-
-                            measure_fig.update_layout(
-                                boxmode="group",
-                                boxgap=0.4,
-                                title={
-                                    "text": measure,
-                                    "x": 0.4,
-                                    "xanchor": "center",
-                                },
-                                legend_title_text="Experiment ID<br />",
-                                showlegend=True,
-                            )
-
-                            plots_list[odor][measure] = measure_fig
+                        plots_list[odor][measure] = measure_fig
+                        # pdb.set_trace()
 
                     odor_bar.set_description(f"Plotting {odor}", refresh=True)
                     # plots_list[odor] = odor_fig
