@@ -186,10 +186,6 @@ def get_odor_data(odor):
     # makes list of number of ROIs per animal
     all_roi_counts = []
 
-    # for exp_ct, experiment in enumerate(
-    #     st.session_state.sig_data.keys()
-    # ):
-
     for animal_id in st.session_state.sorted_sig_data:
         animal_exp_list = []
 
@@ -233,29 +229,29 @@ def position_mean_line(
     total_animals, total_cols, plot_groups, animal_ct, exp_ct
 ):
     """
-    Sets the positioning values for mean lines
+    Sets the positioning values for mean lines depending on whether each
+    animal has multiple ROIs.
     """
-
-    line_width = (1 / total_animals) / 6
-    within_group_interval = (1 / total_animals) / 8
-    between_group_interval = (1 / total_animals) / 1.95
-
-    # line_width = (1 / total_cols) / 3
-    # within_group_interval = (1 / total_cols) / 4
-    # between_group_interval = (1 / total_cols) / 1
 
     if plot_groups:
         start = (1 / total_cols) / 1.6
+        line_width = (1 / total_animals) / 6
+        within_group_interval = (1 / total_animals) / 8
+        between_group_interval = (1 / total_animals) / 1.95
+
     else:
-        start = (1 / total_cols) / 2.4
+        start = (1 / total_animals) / 3.5
+        line_width = (1 / total_animals) / 3
+        between_group_interval = (1 / total_animals) / 1.4
 
     animal1_roi1_x0 = start
     animal1_roi1_x1 = start + line_width
-    animal1_roi2_x0 = animal1_roi1_x1 + within_group_interval
-    animal1_roi2_x1 = animal1_roi2_x0 + line_width
 
-    # sets positioning variable depending on animal
-    # and exp count
+    if plot_groups:
+        animal1_roi2_x0 = animal1_roi1_x1 + within_group_interval
+        animal1_roi2_x1 = animal1_roi2_x0 + line_width
+
+    # sets positioning variable depending on animal and exp count
 
     # # this is for the very first data point
     if animal_ct == 0:
@@ -266,76 +262,34 @@ def position_mean_line(
             x0 = animal1_roi2_x0
             x1 = animal1_roi2_x1
 
-        # for the first data point in subsequent
-        # animals
-
+    # for the first data point in subsequent animals
     else:
         if exp_ct == 0:
-            # x0 = (
-            #     animal_1_roi2_x1
-            #     + (
-            #         animal_ct
-            #         * between_group_interval
-            #     )
-            #     + (
-            #         (animal_ct - 1)
-            #         * (line_width * 2)
-            #     )
-            # ) + (
-            #     (animal_ct - 1)
-            #     * within_group_interval
-            # )
-
-            # x1 = x0 + line_width
             if plot_groups:
-                x0 = animal1_roi2_x1 + (
-                    animal_ct * (between_group_interval + (line_width))
-                    + ((animal_ct - 1) * (within_group_interval))
+                x0 = (
+                    animal1_roi2_x1
+                    + (animal_ct * (between_group_interval))
+                    + (animal_ct - 1)
+                    * ((line_width * 2) + within_group_interval)
                 )
-
             else:
-                x0 = animal1_roi1_x1 + (
-                    animal_ct * (between_group_interval + line_width)
+                x0 = (
+                    animal1_roi1_x1
+                    + (animal_ct * (between_group_interval))
+                    + (animal_ct - 1) * line_width
                 )
-            x1 = x0 + line_width
 
+        # if this is not exp_ct=0, then obviously plot_groups == True
         else:
-            # x0 = (
-            #     (
-            #         animal_1_roi2_x1
-            #         + (
-            #             animal_ct
-            #             * between_group_interval
-            #         )
-            #         + (
-            #             (animal_ct - 1)
-            #             * (line_width * 2)
-            #         )
-            #     )
-            #     + (
-            #         (animal_ct - 1)
-            #         * within_group_interval
-            #     )
-            #     + line_width
-            #     + within_group_interval
-            # )
-
             x0 = (
                 animal1_roi2_x1
-                + (
-                    animal_ct
-                    - 1
-                    * (
-                        between_group_interval
-                        + (line_width * 2)
-                        + within_group_interval
-                    )
-                )
+                + (animal_ct * (between_group_interval))
+                + (animal_ct - 1) * ((line_width * 2) + within_group_interval)
                 + line_width
                 + within_group_interval
             )
 
-            x1 = x0 + line_width
+        x1 = x0 + line_width
 
     return x0, x1
 
@@ -438,29 +392,6 @@ def add_mean_line(
         y0=exp_odor_df.loc[measure].values.mean(),
         y1=exp_odor_df.loc[measure].values.mean(),
     )
-    # if (
-    #     odor == "Odor 7"
-    #     and measure
-    #     == "Blank-subtracted DeltaF/F(%)"
-    # ):
-    #     print("printing positions")
-    #     print(sig_experiment)
-    #     print(f"animal_count={animal_ct}")
-    #     print(f"exp_count={exp_ct}")
-    #     print(f"start={start:.2f}")
-    #     print(f"line_width={line_width:.2f}")
-    #     print(
-    #         f"within-group={within_group_interval:.2f}"
-    #     )
-    #     print(
-    #         f"between_group={between_group_interval:.2f}"
-    #     )
-    #     print(
-    #         f"animal1_roi2_x1={animal1_roi2_x1:.2f}"
-    #     )
-    #     print(f"x0={x0:.2f}")
-    #     print(f"x1={x1:.2f}")
-    #     print("done")
 
     return fig
 
@@ -477,7 +408,7 @@ def format_fig(fig, measure):
         else names.add(trace.name)
     )
 
-    fig.update_xaxes(showticklabels=True, title_text="Animal ID")
+    fig.update_xaxes(showticklabels=True, title_text="<br />Animal ID")
 
     fig.update_yaxes(
         title_text=measure,
