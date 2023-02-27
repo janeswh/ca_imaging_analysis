@@ -434,6 +434,88 @@ def format_fig(fig, measure):
     return fig
 
 
+def generate_plots():
+    """
+    Creates plots for each odor
+    """
+
+    plots_list = defaultdict(dict)
+
+    color_scale = set_color_scales()
+
+    # adds progress bar
+    odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
+
+    for odor in odor_bar:
+        (
+            sig_odor_exps,
+            all_roi_counts,
+            total_animals,
+        ) = get_odor_data(odor)
+
+        plot_groups, total_cols = get_plot_params(all_roi_counts)
+
+        for measure in st.session_state.measures:
+            measure_fig = plot_odor_measure_fig(
+                sig_odor_exps,
+                odor,
+                measure,
+                color_scale,
+                total_animals,
+                plot_groups,
+                total_cols,
+            )
+
+            measure_fig = format_fig(measure_fig, measure)
+
+            plots_list[odor][measure] = measure_fig
+
+        odor_bar.set_description(f"Plotting {odor}", refresh=True)
+
+    st.info("All plots generated.")
+    if len(st.session_state.nosig_exps) != 0:
+        st.warning(
+            "No plots have been generated for the "
+            "following experiments due to the lack of significant "
+            "odor responses: \n"
+            f"{st.session_state.nosig_exps}"
+        )
+
+    st.session_state.plots_list = plots_list
+
+
+def display_plots():
+    """
+    Displays the plots for the selected odor
+    """
+    for measure in st.session_state.measures:
+        st.plotly_chart(
+            st.session_state.plots_list[st.session_state.selected_odor][
+                measure
+            ]
+        )
+
+
+def check_sig_odors(odors_list):
+    """
+    Checks significant odor responses from loaded data and puts them in a list
+    """
+    # flatten list of odors
+    flat_odors_list = [odor for sublist in odors_list for odor in sublist]
+
+    if len(st.session_state.nosig_exps) == len(st.session_state.files):
+        st.error(
+            "None of the uploaded experiments have significant "
+            " odor responses. Please upload data for experiments with "
+            " significant responses to plot the response measurements."
+        )
+        # st.session_state.load_data = False
+    else:
+        # gets unique significant odors and puts them in order
+        st.session_state.sig_odors = list(dict.fromkeys(flat_odors_list))
+        st.session_state.sig_odors.sort()
+
+
 def main():
     set_webapp_params()
     initialize_states()
@@ -449,30 +531,12 @@ def main():
                 st.session_state.sorted_sig_data,
             ) = import_data()
 
-            # assign colors to experiments using st.session_state.sig_data.keys()
             st.info(
                 f"Response data loaded successfully for "
                 f"{len(st.session_state.files)} experiments."
             )
 
-            # flatten list of odors
-            flat_odors_list = [
-                odor for sublist in odors_list for odor in sublist
-            ]
-
-            if len(st.session_state.nosig_exps) == len(st.session_state.files):
-                st.error(
-                    "None of the uploaded experiments have significant "
-                    " odor responses. Please upload data for experiments with "
-                    " significant responses to plot the response measurements."
-                )
-                # st.session_state.load_data = False
-            else:
-                # gets unique significant odors and puts them in order
-                st.session_state.sig_odors = list(
-                    dict.fromkeys(flat_odors_list)
-                )
-                st.session_state.sig_odors.sort()
+            check_sig_odors(odors_list)
 
             # if load data is clicked again, doesn't display plots/slider
             st.session_state.plots_list = False
@@ -482,53 +546,7 @@ def main():
             st.session_state.nosig_exps
         ) != len(st.session_state.files):
             if st.button("Plot data"):
-                # plots_list = {}
-                plots_list = defaultdict(dict)
-
-                color_scale = set_color_scales()
-
-                # adds progress bar
-
-                odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
-
-                for odor in odor_bar:
-                    (
-                        sig_odor_exps,
-                        all_roi_counts,
-                        total_animals,
-                    ) = get_odor_data(odor)
-
-                    plot_groups, total_cols = get_plot_params(all_roi_counts)
-
-                    for measure in st.session_state.measures:
-                        measure_fig = plot_odor_measure_fig(
-                            sig_odor_exps,
-                            odor,
-                            measure,
-                            color_scale,
-                            total_animals,
-                            plot_groups,
-                            total_cols,
-                        )
-
-                        measure_fig = format_fig(measure_fig, measure)
-
-                        plots_list[odor][measure] = measure_fig
-                        # pdb.set_trace()
-
-                    odor_bar.set_description(f"Plotting {odor}", refresh=True)
-                    # plots_list[odor] = odor_fig
-
-                st.info("All plots generated.")
-                if len(st.session_state.nosig_exps) != 0:
-                    st.warning(
-                        "No plots have been generated for the "
-                        "following experiments due to the lack of significant "
-                        "odor responses: \n"
-                        f"{st.session_state.nosig_exps}"
-                    )
-
-                st.session_state.plots_list = plots_list
+                generate_plots()
 
             # display slider and plots if plots have already been generated
             # even if Plot data isn't clicked again
@@ -539,12 +557,7 @@ def main():
                 )
 
                 if st.session_state.selected_odor:
-                    for measure in st.session_state.measures:
-                        st.plotly_chart(
-                            st.session_state.plots_list[
-                                st.session_state.selected_odor
-                            ][measure]
-                        )
+                    display_plots()
 
 
 if __name__ == "__main__":
