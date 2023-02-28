@@ -228,69 +228,33 @@ def get_plot_params(all_roi_counts):
     return plot_groups, total_cols
 
 
-def position_mean_line(
-    total_animals, total_cols, plot_groups, animal_ct, exp_ct
-):
+def position_mean_line(total_sessions, interval_ct):
     """
     Sets the positioning values for mean lines depending on whether each
     animal has multiple ROIs.
     """
 
-    if plot_groups:
-        start = (1 / total_cols) / 1.6
-        line_width = (1 / total_animals) / 6
-        within_group_interval = (1 / total_animals) / 8
-        between_group_interval = (1 / total_animals) / 1.95
+    start = (1 / total_sessions) / 3.5
+    line_width = (1 / total_sessions) / 3
+    between_group_interval = (1 / total_sessions) / 1.4
 
-    else:
-        start = (1 / total_animals) / 3.5
-        line_width = (1 / total_animals) / 3
-        between_group_interval = (1 / total_animals) / 1.4
+    session1_x0 = start
+    session1_x1 = start + line_width
 
-    animal1_roi1_x0 = start
-    animal1_roi1_x1 = start + line_width
-
-    if plot_groups:
-        animal1_roi2_x0 = animal1_roi1_x1 + within_group_interval
-        animal1_roi2_x1 = animal1_roi2_x0 + line_width
-
-    # sets positioning variable depending on animal and exp count
+    # sets positioning variable depending on total sessions and exp count
 
     # # this is for the very first data point
-    if animal_ct == 0:
-        if exp_ct == 0:
-            x0 = animal1_roi1_x0
-            x1 = animal1_roi1_x1
-        else:
-            x0 = animal1_roi2_x0
-            x1 = animal1_roi2_x1
+    if interval_ct == 1:
+        x0 = session1_x0
+        x1 = session1_x1
 
-    # for the first data point in subsequent animals
+    # for subsequent data points
     else:
-        if exp_ct == 0:
-            if plot_groups:
-                x0 = (
-                    animal1_roi2_x1
-                    + (animal_ct * (between_group_interval))
-                    + (animal_ct - 1)
-                    * ((line_width * 2) + within_group_interval)
-                )
-            else:
-                x0 = (
-                    animal1_roi1_x1
-                    + (animal_ct * (between_group_interval))
-                    + (animal_ct - 1) * line_width
-                )
-
-        # if this is not exp_ct=0, then obviously plot_groups == True
-        else:
-            x0 = (
-                animal1_roi2_x1
-                + (animal_ct * (between_group_interval))
-                + (animal_ct - 1) * ((line_width * 2) + within_group_interval)
-                + line_width
-                + within_group_interval
-            )
+        x0 = (
+            session1_x1
+            + (interval_ct * (between_group_interval))
+            + (interval_ct - 1) * line_width
+        )
 
         x1 = x0 + line_width
 
@@ -298,11 +262,11 @@ def position_mean_line(
 
 
 def plot_odor_measure_fig(
+    total_sessions,
     sig_odor_exps,
     odor,
     measure,
     color_scale,
-    total_cols,
 ):
     """
     Plots the analysis values for specified odor and measurement
@@ -331,7 +295,7 @@ def plot_odor_measure_fig(
                 fillcolor="rgba(0,0,0,0)",
                 boxpoints="all",
                 pointpos=0,
-                marker_color=color_scale["marker"][exp_ct + 1],
+                marker_color=color_scale["marker"][interval_ct],
                 marker=dict(
                     # opacity=0.5,
                     line=dict(
@@ -345,49 +309,32 @@ def plot_odor_measure_fig(
             ),
         )
 
-        # # only adds mean line if there is more than one pt
-        # if isinstance(exp_odor_df.loc[measure], pd.Series):
-        #     measure_fig = add_mean_line(
-        #         measure_fig,
-        #         total_animals,
-        #         total_cols,
-        #         plot_groups,
-        #         animal_ct,
-        #         exp_ct,
-        #         color_scale,
-        #         measure,
-        #         exp_odor_df,
-        #     )
+        # only adds mean line if there is more than one pt
+        if isinstance(exp_odor_df.loc[measure], pd.Series):
+            measure_fig = add_mean_line(
+                measure_fig,
+                total_sessions,
+                color_scale,
+                measure,
+                exp_odor_df,
+                interval_ct,
+            )
 
     return measure_fig
 
 
 def add_mean_line(
-    fig,
-    total_animals,
-    total_cols,
-    plot_groups,
-    animal_ct,
-    exp_ct,
-    color_scale,
-    measure,
-    exp_odor_df,
+    fig, total_sessions, color_scale, measure, exp_odor_df, interval_ct
 ):
     """
     Adds mean line to each dataset
     """
-    x0, x1 = position_mean_line(
-        total_animals,
-        total_cols,
-        plot_groups,
-        animal_ct,
-        exp_ct,
-    )
+    x0, x1 = position_mean_line(total_sessions, interval_ct)
 
     fig.add_shape(
         type="line",
         line=dict(
-            color=color_scale["lines"][animal_ct + 1][exp_ct],
+            color=color_scale["lines"],
             width=4,
         ),
         xref="x domain",
@@ -462,11 +409,11 @@ def generate_plots():
 
         for measure in st.session_state.measures:
             measure_fig = plot_odor_measure_fig(
+                total_sessions,
                 sig_odor_exps,
                 odor,
                 measure,
                 color_scale,
-                total_sessions,
             )
 
             measure_fig = format_fig(measure_fig, measure)
