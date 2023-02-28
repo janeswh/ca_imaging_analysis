@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from math import nan
 from datetime import datetime
 from collections import defaultdict
 import plotly.express as px
@@ -36,21 +37,18 @@ def set_color_scales():
     #  this creates color scales for 6 animals with 2 ROIs each
     colorscale = {
         "marker": {
-            1: ["#EDAE49", "#F4CE90"],
-            2: ["#DF7C52", "#E9A486"],
-            3: ["#D1495B", "#DE7C89"],
-            4: ["#00798C", "#00B1CC"],
-            5: ["#30638E", "#498BC1"],
-            6: ["#003D5B", "#006DA3"],
+            1: "#a2ffff",
+            2: "#7ee9ff",
+            3: "#57caff",
+            4: "#24acff",
+            5: "#008ee3",
+            6: "#0072c4",
+            7: "#0057a5",
+            8: "#003e87",
+            9: "#00266b",
+            10: "#000f4f",
         },
-        "lines": {
-            1: ["#95610F", "#EDAE49"],
-            2: ["#793416", "#DF7C52"],
-            3: ["#621822", "#D1495B"],
-            4: ["#004752", "#00798C"],
-            5: ["#1A354C", "#30638E"],
-            6: ["#001B29", "#003D5B"],
-        },
+        "lines": "#000f4f",
     }
 
     return colorscale
@@ -70,6 +68,8 @@ def initialize_states():
         st.session_state.load_data = False
     if "animal_id" not in st.session_state:
         st.session_state.animal_id = False
+    if "interval" not in st.session_state:
+        st.session_state.interval = False
     if "sig_data" not in st.session_state:
         st.session_state.sig_data = False
     if "sorted_dates" not in st.session_state:
@@ -125,6 +125,14 @@ def import_data():
         f"{st.session_state.files[0].name.split('_')[2]}"
     )
 
+    # sort files by date
+    sorted_files = sorted(
+        st.session_state.files,
+        key=lambda file: datetime.strptime(file.name.split("_")[0], "%y%m%d"),
+    )
+
+    st.session_state.files = sorted_files
+
     # adds progress bar
     load_bar = stqdm(st.session_state.files, desc="Loading ")
     for file in load_bar:
@@ -173,20 +181,13 @@ def import_data():
 
             all_sig_odors.append(sig_odors)
 
-        if not sig_data_df.empty:
-            sig_data_dict[exp_name] = sig_data_df
+        # if not sig_data_df.empty:
+        #     sig_data_dict[exp_name] = sig_data_df
+        sig_data_dict[exp_name] = sig_data_df
         if sig_data_df.empty:
             nosig_exps.append(exp_name)
 
-    # sort exp file names by date
-    sorted_dates = sorted(
-        all_exps,
-        key=lambda exp_name: datetime.strptime(
-            exp_name.split("_")[0], "%y%m%d"
-        ),
-    )
-
-    return nosig_exps, all_sig_odors, sig_data_dict, sorted_dates
+    return nosig_exps, all_sig_odors, sig_data_dict, all_exps
 
 
 def get_odor_data(odor):
@@ -196,27 +197,15 @@ def get_odor_data(odor):
 
     # makes list of experiments that have sig responses for
     # the odor
-    sig_odor_exps = {}
+    sig_odor_exps = []
 
-    # makes list of number of ROIs per animal
-    all_roi_counts = []
+    for experiment in st.session_state.sig_data.keys():
+        if odor in st.session_state.sig_data[experiment]:
+            sig_odor_exps.append(experiment)
 
-    for animal_id in st.session_state.sorted_sig_data:
-        animal_exp_list = []
+    total_sessions = len(sig_odor_exps)
 
-        for exp_ct, experiment in enumerate(
-            st.session_state.sorted_sig_data[animal_id].keys()
-        ):
-            if odor in st.session_state.sorted_sig_data[animal_id][experiment]:
-                animal_exp_list.append(experiment)
-                sig_odor_exps[animal_id] = animal_exp_list
-
-        roi_count = len(animal_exp_list)
-        all_roi_counts.append(roi_count)
-
-    total_animals = len(sig_odor_exps)
-
-    return sig_odor_exps, all_roi_counts, total_animals
+    return sig_odor_exps, total_sessions
 
 
 def get_plot_params(all_roi_counts):
@@ -314,8 +303,6 @@ def plot_odor_measure_fig(
     odor,
     measure,
     color_scale,
-    total_animals,
-    plot_groups,
     total_cols,
 ):
     """
@@ -323,52 +310,71 @@ def plot_odor_measure_fig(
     """
     measure_fig = go.Figure()
 
-    for animal_ct, animal_id in enumerate(sig_odor_exps.keys()):
-        for exp_ct, sig_experiment in enumerate(sig_odor_exps[animal_id]):
-            exp_odor_df = st.session_state.sorted_sig_data[animal_id][
-                sig_experiment
-            ][odor]
+    # for exp_ct, sig_experiment in enumerate(sig_odor_exps):
 
-            measure_fig.add_trace(
-                go.Box(
-                    x=[animal_id] * len(exp_odor_df.loc[measure].values)
-                    if isinstance(exp_odor_df.loc[measure], pd.Series)
-                    else [animal_id],
-                    y=exp_odor_df.loc[measure].values.tolist()
-                    if isinstance(exp_odor_df.loc[measure], pd.Series)
-                    else [exp_odor_df.loc[measure]],
-                    line=dict(color="rgba(0,0,0,0)"),
-                    fillcolor="rgba(0,0,0,0)",
-                    boxpoints="all",
-                    pointpos=0,
-                    marker_color=color_scale["marker"][animal_ct + 1][exp_ct],
-                    marker=dict(
-                        # opacity=0.5,
-                        line=dict(
-                            color=color_scale["lines"][animal_ct + 1][exp_ct],
-                            width=2,
-                        ),
-                        size=12,
+    # plots all experiments even if there are no points for non-sig sessions
+    for exp_ct, experiment in enumerate(st.session_state.sig_data.keys()):
+        # gets the timepoint position of the experiment
+        interval_ct = st.session_state.sorted_dates.index(experiment) + 1
+
+        # sets x and y values to plot depending on whether values exist
+        # if odor == "Odor 2":
+        #     pdb.set_trace()
+        if not st.session_state.sig_data[experiment].empty:
+            # if this session contains significant data for the odor
+            if experiment in sig_odor_exps:
+                exp_odor_df = st.session_state.sig_data[experiment][odor]
+
+                # checks whether values need to be put in artificial list
+                if isinstance(exp_odor_df.loc[measure], pd.Series):
+                    x = [interval_ct] * len(exp_odor_df.loc[measure].values)
+                    y = exp_odor_df.loc[measure].values.tolist()
+                else:
+                    x = [interval_ct]
+                    y = [exp_odor_df.loc[measure]]
+            else:
+                x = [interval_ct]
+                y = [nan]
+        else:
+            x = [interval_ct]
+            y = [nan]
+
+        measure_fig.add_trace(
+            go.Box(
+                x=x,
+                y=y,
+                line=dict(color="rgba(0,0,0,0)"),
+                fillcolor="rgba(0,0,0,0)",
+                boxpoints="all",
+                pointpos=0,
+                marker_color=color_scale["marker"][exp_ct + 1],
+                marker=dict(
+                    # opacity=0.5,
+                    line=dict(
+                        color=color_scale["lines"],
+                        width=2,
                     ),
-                    name=sig_experiment,
-                    offsetgroup=exp_ct,
-                    legendgroup=animal_ct,
+                    size=12,
                 ),
-            )
+                name=experiment,
+                # offsetgroup=exp_ct,
+                legendgroup=exp_ct,
+            ),
+        )
 
-            # only adds mean line if there is more than one pt
-            if isinstance(exp_odor_df.loc[measure], pd.Series):
-                measure_fig = add_mean_line(
-                    measure_fig,
-                    total_animals,
-                    total_cols,
-                    plot_groups,
-                    animal_ct,
-                    exp_ct,
-                    color_scale,
-                    measure,
-                    exp_odor_df,
-                )
+        # # only adds mean line if there is more than one pt
+        # if isinstance(exp_odor_df.loc[measure], pd.Series):
+        #     measure_fig = add_mean_line(
+        #         measure_fig,
+        #         total_animals,
+        #         total_cols,
+        #         plot_groups,
+        #         animal_ct,
+        #         exp_ct,
+        #         color_scale,
+        #         measure,
+        #         exp_odor_df,
+        #     )
 
     return measure_fig
 
@@ -423,7 +429,12 @@ def format_fig(fig, measure):
         else names.add(trace.name)
     )
 
-    fig.update_xaxes(showticklabels=True, title_text="<br />Animal ID")
+    fig.update_xaxes(
+        showticklabels=True,
+        title_text=f"<br />{st.session_state.interval}",
+        tickvals=list(range(1, len(st.session_state.sorted_dates) + 1)),
+        range=[0.5, len(st.session_state.sorted_dates) + 1],
+    )
 
     fig.update_yaxes(
         title_text=measure,
@@ -435,8 +446,8 @@ def format_fig(fig, measure):
         )
 
     fig.update_layout(
-        boxmode="group",
-        boxgap=0.4,
+        # boxmode="group",
+        # boxgap=0.4,
         title={
             "text": measure,
             "x": 0.4,
@@ -462,13 +473,9 @@ def generate_plots():
     odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
 
     for odor in odor_bar:
-        (
-            sig_odor_exps,
-            all_roi_counts,
-            total_animals,
-        ) = get_odor_data(odor)
+        sig_odor_exps, total_sessions = get_odor_data(odor)
 
-        plot_groups, total_cols = get_plot_params(all_roi_counts)
+        # plot_groups, total_cols = get_plot_params(all_roi_counts)
 
         for measure in st.session_state.measures:
             measure_fig = plot_odor_measure_fig(
@@ -476,9 +483,7 @@ def generate_plots():
                 odor,
                 measure,
                 color_scale,
-                total_animals,
-                plot_groups,
-                total_cols,
+                total_sessions,
             )
 
             measure_fig = format_fig(measure_fig, measure)
@@ -554,12 +559,14 @@ def main():
 
             check_sig_odors(odors_list)
 
-            interval = st.radio("Select interval:", ("Day", "Week", "Session"))
-
-            pdb.set_trace()
-
             # if load data is clicked again, doesn't display plots/slider
             st.session_state.plots_list = False
+
+        # select interval type if load data has been clicked
+        if st.session_state.load_data:
+            st.session_state.interval = st.radio(
+                "Select timepoint interval:", ("Day", "Week", "Session")
+            )
 
         # if data has been loaded, always show plotting buttons
         if st.session_state.load_data and len(
