@@ -181,9 +181,8 @@ def import_data():
 
             all_sig_odors.append(sig_odors)
 
-        # if not sig_data_df.empty:
-        #     sig_data_dict[exp_name] = sig_data_df
-        sig_data_dict[exp_name] = sig_data_df
+        if not sig_data_df.empty:
+            sig_data_dict[exp_name] = sig_data_df
         if sig_data_df.empty:
             nosig_exps.append(exp_name)
 
@@ -310,34 +309,19 @@ def plot_odor_measure_fig(
     """
     measure_fig = go.Figure()
 
-    # for exp_ct, sig_experiment in enumerate(sig_odor_exps):
-
-    # plots all experiments even if there are no points for non-sig sessions
-    for exp_ct, experiment in enumerate(st.session_state.sig_data.keys()):
+    for exp_ct, sig_experiment in enumerate(sig_odor_exps):
         # gets the timepoint position of the experiment
-        interval_ct = st.session_state.sorted_dates.index(experiment) + 1
+        interval_ct = st.session_state.sorted_dates.index(sig_experiment) + 1
 
-        # sets x and y values to plot depending on whether values exist
-        # if odor == "Odor 2":
-        #     pdb.set_trace()
-        if not st.session_state.sig_data[experiment].empty:
-            # if this session contains significant data for the odor
-            if experiment in sig_odor_exps:
-                exp_odor_df = st.session_state.sig_data[experiment][odor]
+        exp_odor_df = st.session_state.sig_data[sig_experiment][odor]
 
-                # checks whether values need to be put in artificial list
-                if isinstance(exp_odor_df.loc[measure], pd.Series):
-                    x = [interval_ct] * len(exp_odor_df.loc[measure].values)
-                    y = exp_odor_df.loc[measure].values.tolist()
-                else:
-                    x = [interval_ct]
-                    y = [exp_odor_df.loc[measure]]
-            else:
-                x = [interval_ct]
-                y = [nan]
+        # checks whether values need to be put in artificial list
+        if isinstance(exp_odor_df.loc[measure], pd.Series):
+            x = [interval_ct] * len(exp_odor_df.loc[measure].values)
+            y = exp_odor_df.loc[measure].values.tolist()
         else:
             x = [interval_ct]
-            y = [nan]
+            y = [exp_odor_df.loc[measure]]
 
         measure_fig.add_trace(
             go.Box(
@@ -356,8 +340,7 @@ def plot_odor_measure_fig(
                     ),
                     size=12,
                 ),
-                name=experiment,
-                # offsetgroup=exp_ct,
+                name=sig_experiment,
                 legendgroup=exp_ct,
             ),
         )
