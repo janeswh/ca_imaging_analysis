@@ -37,15 +37,15 @@ def set_color_scales():
     #  this creates color scales for 6 animals with 2 ROIs each
     colorscale = {
         "marker": {
-            1: "#a2ffff",
-            2: "#7ee9ff",
-            3: "#57caff",
-            4: "#24acff",
-            5: "#008ee3",
-            6: "#0072c4",
-            7: "#0057a5",
-            8: "#003e87",
-            9: "#00266b",
+            1: "rgba(162, 255, 255, 0.5)",
+            2: "rgba(126, 233, 255, 0.5)",
+            3: "rgba(87, 202, 255, 0.5)",
+            4: "rgba(36, 172, 255, 0.5)",
+            5: "rgba(0, 142, 227, 0.5)",
+            6: "rgba(0, 114, 196, 0.5)",
+            7: "rgb(0, 87, 165, 0.5)",
+            8: "rgba(0, 62, 135, 0.5)",
+            9: "rgba(0, 38, 107, 0.5)",
             10: "rgba(0, 15, 79, 0.5)"
             # 10: "#000f4f",
         },
@@ -336,7 +336,7 @@ def plot_odor_measure_fig(
             x=x_vals,
             y=avgs,
             mode="lines",
-            line=dict(color="orange"),
+            line=dict(color="orange", dash="dot"),
             name="Mean",
         )
     )
