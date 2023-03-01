@@ -46,7 +46,8 @@ def set_color_scales():
             7: "#0057a5",
             8: "#003e87",
             9: "#00266b",
-            10: "#000f4f",
+            10: "rgba(0, 15, 79, 0.5)"
+            # 10: "#000f4f",
         },
         "lines": "#000f4f",
     }
@@ -273,6 +274,9 @@ def plot_odor_measure_fig(
     """
     measure_fig = go.Figure()
 
+    # generates list holding the mean values for plotting later
+    avgs = [0] * len(st.session_state.sorted_dates)
+
     for exp_ct, sig_experiment in enumerate(sig_odor_exps):
         # gets the timepoint position of the experiment
         interval_ct = st.session_state.sorted_dates.index(sig_experiment) + 1
@@ -309,16 +313,33 @@ def plot_odor_measure_fig(
             ),
         )
 
-        # only adds mean line if there is more than one pt
+        # only adds mean line if there is more than one pt per exp
         if isinstance(exp_odor_df.loc[measure], pd.Series):
-            measure_fig = add_mean_line(
-                measure_fig,
-                total_sessions,
-                color_scale,
-                measure,
-                exp_odor_df,
-                interval_ct,
-            )
+            # adds mean value to list for plotting
+            avgs[interval_ct - 1] = exp_odor_df.loc[measure].values.mean()
+        #     measure_fig = add_mean_line(
+        #         measure_fig,
+        #         total_sessions,
+        #         color_scale,
+        #         measure,
+        #         exp_odor_df,
+        #         interval_ct,
+        #     )
+
+    # makes x-axis values for mean trace
+    x_vals = list(range(1, len(st.session_state.sorted_dates) + 1))
+
+    # only adds mean line if there is more than one significant session
+    # if len(sig_odor_exps) > 1:
+    measure_fig.add_trace(
+        go.Scatter(
+            x=x_vals,
+            y=avgs,
+            mode="lines",
+            line=dict(color="orange"),
+            name="Mean",
+        )
+    )
 
     return measure_fig
 
