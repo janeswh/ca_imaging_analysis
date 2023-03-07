@@ -275,7 +275,15 @@ def plot_odor_measure_fig(
     measure_fig = go.Figure()
 
     # generates list holding the mean values for plotting later
-    avgs = [0] * len(st.session_state.sorted_dates)
+    # fills non-sig sessions with 0 or nan depending on measure
+
+    if (
+        measure == "Blank-subtracted DeltaF/F(%)"
+        or measure == "Area under curve"
+    ):
+        avgs = [0] * len(st.session_state.sorted_dates)
+    elif measure == "Latency (s)" or measure == "Time to peak (s)":
+        avgs = [nan] * len(st.session_state.sorted_dates)
 
     for exp_ct, sig_experiment in enumerate(sig_odor_exps):
         # gets the timepoint position of the experiment
@@ -340,6 +348,18 @@ def plot_odor_measure_fig(
             name="Mean",
         )
     )
+
+    # adds mean point dots for latency and time to peak
+    if measure == "Latency (s)" or measure == "Time to peak (s)":
+        measure_fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=avgs,
+                mode="markers",
+                marker=dict(color="orange"),
+                name="Single Mean",
+            )
+        )
 
     return measure_fig
 
