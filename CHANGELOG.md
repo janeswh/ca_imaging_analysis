@@ -4,8 +4,9 @@
 
 ### Added
 
-- Changelog page
-- Description of basic functionalities in the app home page
+- Added Changelog page
+- Added description of basic functionalities in the app home page
+- Display error message if uploaded file is incorrect/not the expected file
 
 ### Fixed
 

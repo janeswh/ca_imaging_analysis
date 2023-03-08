@@ -31,16 +31,19 @@ def set_webapp_params():
     }
 
 
-def main():
-    set_webapp_params()
+def initialize_states():
+    """
+    Initializes session state variables
+    """
 
-    # # # --- Initialising SessionState ---
     # makes the avg_means data persist
     if "data" not in st.session_state:
         st.session_state.data = False
     # checks whether Load data was clicked
     if "pg2_load_data" not in st.session_state:
         st.session_state.pg2_load_data = False
+    if "file" not in st.session_state:
+        st.session_state.file = False
     if "odor_list" not in st.session_state:
         st.session_state.odor_list = False
     if "pg2_plots_list" not in st.session_state:
@@ -48,36 +51,45 @@ def main():
     if "selected_sample" not in st.session_state:
         st.session_state.selected_sample = False
 
-    uploaded_file = st.file_uploader(
+    st.session_state.file = st.file_uploader(
         label="Choose a file", label_visibility="collapsed"
     )
 
-    if uploaded_file or st.session_state.pg2_load_data:
+
+def main():
+    set_webapp_params()
+    initialize_states()
+
+    # checks that the correct file has been uploaded
+    if st.session_state.file is not None:
+        if "avg_means" not in st.session_state.file.name:
+            st.error(
+                "Please make sure that the correct file with name "
+                "ending in 'avg_means.xlsx' has been uploaded."
+            )
+            st.session_state.pg2_load_data = False
+            st.session_state.file = False
+
+    if st.session_state.file or st.session_state.pg2_load_data:
         if st.button("Load data"):
-            # checks to see that the correct file was uploaded
-            if "avg_means" in uploaded_file.name:
-                st.session_state.pg2_load_data = True
-                # reads avg means into dict, with sheet names/sample # as keys, df
-                # as values
-                avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
-                st.info(
-                    f"Avg means loaded successfully for {len(avg_means_dict)} "
-                    "samples."
-                )
-                st.session_state.data = avg_means_dict
+            # reads avg means into dict, with sheet names/sample # as keys, df
+            # as values
+            avg_means_dict = pd.read_excel(
+                st.session_state.file, sheet_name=None
+            )
+            st.info(
+                f"Avg means loaded successfully for {len(avg_means_dict)} "
+                "samples."
+            )
+            st.session_state.data = avg_means_dict
+            st.session_state.pg2_load_data = True
 
-                # the below tries to get list of odor #s from column names
-                first_sample_df = next(iter(st.session_state.data.values()))
+            # the below tries to get list of odor #s from column names
+            first_sample_df = next(iter(st.session_state.data.values()))
 
-                st.session_state.odor_list = [
-                    x for x in first_sample_df.columns.values if type(x) == int
-                ]
-            else:
-                st.session_state.pg2_load_data = False
-                st.error(
-                    "Please make sure that the correct file with name "
-                    "ending in 'avg_means.xlsx' has been uploaded."
-                )
+            st.session_state.odor_list = [
+                x for x in first_sample_df.columns.values if type(x) == int
+            ]
 
             # if load data is clicked again, doesn't display plots/slider
             st.session_state.pg2_plots_list = False

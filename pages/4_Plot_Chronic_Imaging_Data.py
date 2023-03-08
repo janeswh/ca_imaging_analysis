@@ -511,6 +511,15 @@ def main():
     set_webapp_params()
     initialize_states()
 
+    # checks that all the uploaded files are correct
+    for file in st.session_state.files:
+        if "_analysis" not in file.name:
+            st.error(
+                "Please make sure all uploaded files end in '_analysis.xlsx'"
+            )
+            st.session_state.files = False
+            st.session_state.pg4_load_data = False
+
     if st.session_state.files or st.session_state.pg4_load_data:
         if st.button("Load data"):
             st.session_state.pg4_load_data = True

@@ -39,6 +39,11 @@ def get_selected_folder_info(dir_path):
 
     except IndexError:
         date = animal_ID = roi = None
+        st.error(
+            "Please ensure that you've selected the desired folder by "
+            "double clicking to open it in the file dialog and that it's "
+            "named correctly."
+        )
 
     return date, animal_ID, roi
 
@@ -91,6 +96,31 @@ def get_session_info(folder):
     roi = folder.split("_")[1]
 
     return date, animal_ID, roi
+
+
+def check_solenoid_file(date, animal_id, ROI_id, session_path):
+    """
+    Checks that the solenoid .txt file is named properly and present.
+    """
+    solenoid_filename = (
+        date + "_" + animal_id + "_" + ROI_id + "_solenoid_info.txt"
+    )
+
+    solenoid_path = Path(session_path, solenoid_filename)
+
+    # reads first line of solenoid order txt file
+    try:
+        with open(solenoid_path) as f:
+            solenoid_order_raw = f.readline()
+    except OSError:
+        st.error(
+            "Please make sure that the solenoid info txt file is "
+            "present in the directory and named correctly in the "
+            "format YYMMDD_123456-7-8_ROIX_solenoid_info.txt."
+        )
+        solenoid_order_raw = None
+
+    return solenoid_order_raw
 
 
 def choose_sample_type():
@@ -231,8 +261,15 @@ class ImagingSession(object):
         solenoid_path = Path(self.session_path, solenoid_filename)
 
         # reads first line of solenoid order txt file
-        with open(solenoid_path) as f:
-            solenoid_order_raw = f.readline()
+        try:
+            with open(solenoid_path) as f:
+                solenoid_order_raw = f.readline()
+        except OSError:
+            st.error(
+                "Please make sure that the solenoid info txt file is "
+                "present in the directory and named correctly in the "
+                "format YYMMDD_123456-7-8_ROIX_solenoid_info.txt."
+            )
 
         # removes non-numeric characters from solenoid order string
         solenoid_order_num = re.sub("[^0-9]", "", solenoid_order_raw)
@@ -443,7 +480,6 @@ class ImagingSession(object):
 
         # gets odor #s with significant responses
         sig_odors = significance_bool[significance_bool].index.values
-        # sig_odors = [1, 5]    # for testing
 
         # reports False if odor is not significant, otherwise
         # reports blanksub_deltaF/F(%)
@@ -455,8 +491,6 @@ class ImagingSession(object):
         baseline_subtracted = avg_means - baseline
 
         # Calculates AUC using sum of values from frames # 1-300
-        # formula: (sum(avg_mean_frames1-300) - (baseline*300)) * 0.0661
-
         auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
 
         # Gets AUC_blank from AUC of the last odor
@@ -661,39 +695,38 @@ def main():
             st.session_state.dir_path
         )
 
-        # if folder has been selected properly, proceed
-
         if date:
-            st.session_state.run_type = choose_run_type()
-
-            if st.session_state.run_type == "analysis":
-                st.session_state.sample_type = choose_sample_type()
-                if st.checkbox("Exclude specific trials from analysis"):
-                    st.session_state.drop_trial = st.text_input(
-                        "Enter trial number to drop, separated by comma if "
-                        "there are multiple, e.g. 1,2,5,6"
-                    )
-
-            st.warning(
-                "If this is a re-run, please delete all the .xlsx files "
-                " from the previous run through before clicking Go!"
+            # if folder has been selected properly, proceed
+            solenoid_order_raw = check_solenoid_file(
+                date, animal_id, roi, st.session_state.dir_path
             )
-            if st.button("Go!"):
-                run_analysis(
-                    st.session_state.dir_path,
-                    date,
-                    animal_id,
-                    roi,
-                    st.session_state.sample_type,
-                    st.session_state.run_type,
-                    st.session_state.drop_trial,
+
+            # if solenoid file is present and correctly named, proceed
+            if solenoid_order_raw:
+                st.session_state.run_type = choose_run_type()
+
+                if st.session_state.run_type == "analysis":
+                    st.session_state.sample_type = choose_sample_type()
+                    if st.checkbox("Exclude specific trials from analysis"):
+                        st.session_state.drop_trial = st.text_input(
+                            "Enter trial number to drop, separated by comma if "
+                            "there are multiple, e.g. 1,2,5,6"
+                        )
+
+                st.warning(
+                    "If this is a re-run, please delete all the .xlsx files "
+                    " from the previous run through before clicking Go!"
                 )
-        else:
-            # tells user to pick directory properly
-            st.error(
-                "Please ensure that you've selected the desired folder by "
-                "opening it in the file dialog and that it's named correctly."
-            )
+                if st.button("Go!"):
+                    run_analysis(
+                        st.session_state.dir_path,
+                        date,
+                        animal_id,
+                        roi,
+                        st.session_state.sample_type,
+                        st.session_state.run_type,
+                        st.session_state.drop_trial,
+                    )
 
 
 if __name__ == "__main__":
