@@ -208,60 +208,6 @@ def get_odor_data(odor):
     return sig_odor_exps, total_sessions
 
 
-def get_plot_params(all_roi_counts):
-    """
-    Counts the number of ROIs (columns) and animals plotted for each odor
-    """
-
-    # determines whether plot has groups for multiple ROI
-    # also counts total number of columns - if groups are present,
-    # animals with one ROI still have two columns
-
-    if 2 in all_roi_counts:
-        plot_groups = True
-        zeroes = all_roi_counts.count(0)
-        total_cols = (len(all_roi_counts) - zeroes) * 2
-
-    else:
-        plot_groups = False
-        total_cols = sum(all_roi_counts)
-
-    return plot_groups, total_cols
-
-
-def position_mean_line(total_sessions, interval_ct):
-    """
-    Sets the positioning values for mean lines depending on whether each
-    animal has multiple ROIs.
-    """
-
-    start = (1 / total_sessions) / 3.5
-    line_width = (1 / total_sessions) / 3
-    between_group_interval = (1 / total_sessions) / 1.4
-
-    session1_x0 = start
-    session1_x1 = start + line_width
-
-    # sets positioning variable depending on total sessions and exp count
-
-    # # this is for the very first data point
-    if interval_ct == 1:
-        x0 = session1_x0
-        x1 = session1_x1
-
-    # for subsequent data points
-    else:
-        x0 = (
-            session1_x1
-            + (interval_ct * (between_group_interval))
-            + (interval_ct - 1) * line_width
-        )
-
-        x1 = x0 + line_width
-
-    return x0, x1
-
-
 def plot_odor_measure_fig(
     total_sessions,
     sig_odor_exps,
@@ -321,24 +267,15 @@ def plot_odor_measure_fig(
             ),
         )
 
-        # only adds mean line if there is more than one pt per exp
+        # only adds mean value to list for plotting if
+        # there is more than one pt per exp
         if isinstance(exp_odor_df.loc[measure], pd.Series):
-            # adds mean value to list for plotting
             avgs[interval_ct - 1] = exp_odor_df.loc[measure].values.mean()
-        #     measure_fig = add_mean_line(
-        #         measure_fig,
-        #         total_sessions,
-        #         color_scale,
-        #         measure,
-        #         exp_odor_df,
-        #         interval_ct,
-        #     )
 
     # makes x-axis values for mean trace
     x_vals = list(range(1, len(st.session_state.sorted_dates) + 1))
 
-    # only adds mean line if there is more than one significant session
-    # if len(sig_odor_exps) > 1:
+    # adds mean line
     measure_fig.add_trace(
         go.Scatter(
             x=x_vals,
@@ -362,30 +299,6 @@ def plot_odor_measure_fig(
         )
 
     return measure_fig
-
-
-def add_mean_line(
-    fig, total_sessions, color_scale, measure, exp_odor_df, interval_ct
-):
-    """
-    Adds mean line to each dataset
-    """
-    x0, x1 = position_mean_line(total_sessions, interval_ct)
-
-    fig.add_shape(
-        type="line",
-        line=dict(
-            color=color_scale["lines"],
-            width=4,
-        ),
-        xref="x domain",
-        x0=x0,
-        x1=x1,
-        y0=exp_odor_df.loc[measure].values.mean(),
-        y1=exp_odor_df.loc[measure].values.mean(),
-    )
-
-    return fig
 
 
 def format_fig(fig, measure):
@@ -417,8 +330,6 @@ def format_fig(fig, measure):
         )
 
     fig.update_layout(
-        # boxmode="group",
-        # boxgap=0.4,
         title={
             "text": measure,
             "x": 0.4,
@@ -445,8 +356,6 @@ def generate_plots():
 
     for odor in odor_bar:
         sig_odor_exps, total_sessions = get_odor_data(odor)
-
-        # plot_groups, total_cols = get_plot_params(all_roi_counts)
 
         for measure in st.session_state.measures:
             measure_fig = plot_odor_measure_fig(
@@ -500,7 +409,7 @@ def check_sig_odors(odors_list):
             " odor responses. Please upload data for experiments with "
             " significant responses to plot the response measurements."
         )
-        # st.session_state.load_data = False
+
     else:
         # gets unique significant odors and puts them in order
         st.session_state.sig_odors = list(dict.fromkeys(flat_odors_list))
