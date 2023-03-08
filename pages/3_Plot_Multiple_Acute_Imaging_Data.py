@@ -65,8 +65,8 @@ def initialize_states():
     if "files" not in st.session_state:
         st.session_state.files = False
     # checks whether Load data was clicked
-    if "load_data" not in st.session_state:
-        st.session_state.load_data = False
+    if "pg3_load_data" not in st.session_state:
+        st.session_state.pg3_load_data = False
     if "sig_data" not in st.session_state:
         st.session_state.sig_data = False
     if "sorted_sig_data" not in st.session_state:
@@ -74,14 +74,14 @@ def initialize_states():
     if "sig_odors" not in st.session_state:
         st.session_state.sig_odors = False
     if "nosig_exps" not in st.session_state:
-        st.session_state.no_sig_exps = False
+        st.session_state.nosig_exps = False
 
     # assigns a color to each exp session with significant responses
     if "sig_exp_colors" not in st.session_state:
         st.session_state.sig_exp_colors = False
 
-    if "plots_list" not in st.session_state:
-        st.session_state.plots_list = False
+    if "pg3_plots_list" not in st.session_state:
+        st.session_state.pg3_plots_list = False
     if "selected_odor" not in st.session_state:
         st.session_state.selected_odor = False
 
@@ -481,7 +481,7 @@ def generate_plots():
             f"{st.session_state.nosig_exps}"
         )
 
-    st.session_state.plots_list = plots_list
+    st.session_state.pg3_plots_list = plots_list
 
 
 def display_plots():
@@ -490,7 +490,7 @@ def display_plots():
     """
     for measure in st.session_state.measures:
         st.plotly_chart(
-            st.session_state.plots_list[st.session_state.selected_odor][
+            st.session_state.pg3_plots_list[st.session_state.selected_odor][
                 measure
             ]
         )
@@ -520,9 +520,9 @@ def main():
     set_webapp_params()
     initialize_states()
 
-    if st.session_state.files or st.session_state.load_data:
+    if st.session_state.files or st.session_state.pg3_load_data:
         if st.button("Load data"):
-            st.session_state.load_data = True
+            st.session_state.pg3_load_data = True
 
             (
                 st.session_state.nosig_exps,
@@ -539,10 +539,10 @@ def main():
             check_sig_odors(odors_list)
 
             # if load data is clicked again, doesn't display plots/slider
-            st.session_state.plots_list = False
+            st.session_state.pg3_plots_list = False
 
         # if data has been loaded, always show plotting buttons
-        if st.session_state.load_data and len(
+        if st.session_state.pg3_load_data and len(
             st.session_state.nosig_exps
         ) != len(st.session_state.files):
             if st.button("Plot data"):
@@ -550,7 +550,7 @@ def main():
 
             # display slider and plots if plots have already been generated
             # even if Plot data isn't clicked again
-            if st.session_state.plots_list:
+            if st.session_state.pg3_plots_list:
                 st.session_state.selected_odor = st.selectbox(
                     "Select odor number to display its corresponding plots:",
                     options=st.session_state.sig_odors,
