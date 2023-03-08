@@ -39,12 +39,12 @@ def main():
     if "data" not in st.session_state:
         st.session_state.data = False
     # checks whether Load data was clicked
-    if "load_data" not in st.session_state:
-        st.session_state.load_data = False
+    if "pg2_load_data" not in st.session_state:
+        st.session_state.pg2_load_data = False
     if "odor_list" not in st.session_state:
-        st.session_state.load_data = False
-    if "plots_list" not in st.session_state:
-        st.session_state.plots_list = False
+        st.session_state.odor_list = False
+    if "pg2_plots_list" not in st.session_state:
+        st.session_state.pg2_plots_list = False
     if "selected_sample" not in st.session_state:
         st.session_state.selected_sample = False
 
@@ -52,31 +52,38 @@ def main():
         label="Choose a file", label_visibility="collapsed"
     )
 
-    if uploaded_file or st.session_state.load_data:
+    if uploaded_file or st.session_state.pg2_load_data:
         if st.button("Load data"):
-            st.session_state.load_data = True
+            # checks to see that the correct file was uploaded
+            if "avg_means" in uploaded_file.name:
+                st.session_state.pg2_load_data = True
+                # reads avg means into dict, with sheet names/sample # as keys, df
+                # as values
+                avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
+                st.info(
+                    f"Avg means loaded successfully for {len(avg_means_dict)} "
+                    "samples."
+                )
+                st.session_state.data = avg_means_dict
 
-            # reads avg means into dict, with sheet names/sample # as keys, df
-            # as values
-            avg_means_dict = pd.read_excel(uploaded_file, sheet_name=None)
-            st.info(
-                f"Avg means loaded successfully for {len(avg_means_dict)} samples"
-                "."
-            )
-            st.session_state.data = avg_means_dict
+                # the below tries to get list of odor #s from column names
+                first_sample_df = next(iter(st.session_state.data.values()))
 
-            # the below tries to get list of odor #s from column names
-            first_sample_df = next(iter(st.session_state.data.values()))
-
-            st.session_state.odor_list = [
-                x for x in first_sample_df.columns.values if type(x) == int
-            ]
+                st.session_state.odor_list = [
+                    x for x in first_sample_df.columns.values if type(x) == int
+                ]
+            else:
+                st.session_state.pg2_load_data = False
+                st.error(
+                    "Please make sure that the correct file with name "
+                    "ending in 'avg_means.xlsx' has been uploaded."
+                )
 
             # if load data is clicked again, doesn't display plots/slider
-            st.session_state.plots_list = False
+            st.session_state.pg2_plots_list = False
 
         # if data has been loaded, always show plotting buttons
-        if st.session_state.load_data:
+        if st.session_state.pg2_load_data:
             if st.checkbox("Select specific odors to plot"):
                 odors_to_plot = st.multiselect(
                     label="Odors to plot",
@@ -96,16 +103,6 @@ def main():
                 bar = stqdm(st.session_state.data.items(), desc="Plotting ")
                 for sample, avg_means_df in bar:
                     fig = go.Figure()
-
-                    # fig = px.line(
-                    #     avg_means_df,
-                    #     x="Frame",
-                    #     y=avg_means_df.columns[odors_to_plot],
-                    #     labels={
-                    #         "value": "Mean amplitude",
-                    #         "variable": "Odor Number",
-                    #     },
-                    # )
 
                     for odor in odors_to_plot:
                         fig.add_trace(
@@ -136,11 +133,11 @@ def main():
                     plots_list[sample] = fig
 
                 st.info("All plots generated.")
-                st.session_state.plots_list = plots_list
+                st.session_state.pg2_plots_list = plots_list
 
             # display slider and plots if plots have already been generated
             # even if Plot data isn't clicked again
-            if st.session_state.plots_list:
+            if st.session_state.pg2_plots_list:
                 st.session_state.selected_sample = st.select_slider(
                     "Select sample number to display its "
                     "corresponding plot:",
@@ -149,7 +146,7 @@ def main():
 
                 if st.session_state.selected_sample:
                     st.plotly_chart(
-                        st.session_state.plots_list[
+                        st.session_state.pg2_plots_list[
                             st.session_state.selected_sample
                         ]
                     )
