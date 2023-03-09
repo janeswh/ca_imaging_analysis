@@ -89,11 +89,13 @@ USER user
 # Path
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY ROI_analysis_web.py ./
+# COPY ROI_Analysis_Home.py ./
+# COPY pages/ ./
+COPY . .
 
 EXPOSE 8501
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-ENTRYPOINT ["streamlit", "run", "ROI_analysis_web.py", "--server.fileWatcherType=none", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+ENTRYPOINT ["streamlit", "run", "ROI_Analysis_Home.py", "--server.fileWatcherType=none", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
 # ENTRYPOINT ["streamlit", "run", "ROI_analysis_web.py", "--server.port=8501", "--server.headless=true"]
 
 
