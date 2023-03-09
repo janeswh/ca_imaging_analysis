@@ -2,6 +2,10 @@
 
 ## [0.1.0] - 2022-03-08
 
+### Changed
+
+- Changed color scale of `3_Plot_Multiple_Acute_Imaging_Data.py` and tweaked marker opacity values
+
 ### Added
 
 - Added Changelog page
