@@ -20,10 +20,10 @@ def set_webapp_params():
     st.title("ROI Analysis")
 
     st.markdown(
-        "Please select the folder containing the Ca imaging raw .txt files "
-        "from the imaging session you want to analyze. The folder should be "
-        "named in the format YYMMDD--123456-7-8_ROIX where 123456-7-8 is the "
-        "animal ID, and X is the one-digit ROI number."
+        "Please select (by double clicking into) the folder containing the Ca "
+        "imaging raw .txt files from the imaging session you want to analyze. "
+        "The folder should be named in the format YYMMDD--123456-7-8_ROIX "
+        "where 123456-7-8 is the animal ID, and X is the one-digit ROI number."
     )
 
 
