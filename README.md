@@ -52,3 +52,12 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 
 ### Collating and analyzing raw .txt files
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/load_data.gif)
+
+### Plotting mean fluorescence values from one imaging session
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_one_session.gif)
+
+### Plotting data from multiple acute imaging sessions
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_multiple_acute.gif)
+
+### Plotting data from chronic imaging sessions
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_chronic.gif)
