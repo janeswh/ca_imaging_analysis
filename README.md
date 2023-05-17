@@ -51,4 +51,4 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 ## Available functions
 
 ### Collating and analyzing raw .txt files
-
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/load_data.gif)
