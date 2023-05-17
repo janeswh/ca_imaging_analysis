@@ -1,4 +1,4 @@
-# Installation instructions for Mac
+# Using the app on Mac OS
 
 ## Initial Installation
 1. Download and install Docker Desktop
