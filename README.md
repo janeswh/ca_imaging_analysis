@@ -1,14 +1,14 @@
 ## About
-The ROI Analysis app imports .txt files containing raw fluorescence intensity data from imaging experiments, then collates and analyzes the data before saving analysis results as human readable .xlsx files. Additional functions include user-friendly data visualization and exploration across multiple experimental sessions.
+The ROI Analysis app imports .txt files containing raw fluorescence intensity data from *in vivo* odor-delivery imaging experiments, then collates and analyzes the data before saving analysis results as human readable .xlsx files. Additional functions include user-friendly data visualization and exploration across multiple experimental sessions.
 
 ## Getting started
 
 ### Prerequisites
-* [Streamlit](https://docs.streamlit.io/library/get-started) if not using Docker
+
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
-* [VcXserv](https://sourceforge.net/projects/vcxsrv) (on Windows)
-* [XQuartz](https://www.xquartz.org) (on Mac)
+* [VcXserv](https://sourceforge.net/projects/vcxsrv) (on Windows) or  [XQuartz](https://www.xquartz.org) (on Mac)
 * Docker image (contact author for access)
+* [Streamlit](https://docs.streamlit.io/library/get-started) if not using Docker and an Xserver
 
 ### Installation
 
@@ -59,15 +59,19 @@ For more detailed setup instructions, visit here:
 ## Available functions
 
 ### Collating and analyzing raw .txt files
+Aggregates the raw fluorescence intensity data contained in sets of .txt files, then performs analyses and exports analyzed results to .xlsx files.
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/load_data.gif)
 
 ### Plotting mean fluorescence values from one imaging session
+Creates interactive plots of the mean fluorescence values from one animal/ROI obtained in one imaging session.
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_one_session.gif)
 
 ### Plotting data from multiple acute imaging sessions
+Creates interactive plots of odor response properties measured in different animals/ROI across multiple imaging sessions.
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_multiple_acute.gif)
 
 ### Plotting data from chronic imaging sessions
+Creates interactive plots of odor response properties measured in the same animal across multiple imaging sessions.
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_chronic.gif)
 
 ## [Changelog](https://github.com/janeswh/ca_imaging_analysis/blob/main/CHANGELOG.md)
