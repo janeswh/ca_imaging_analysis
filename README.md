@@ -4,6 +4,7 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 ## Getting started
 
 ### Prerequisites
+* [Streamlit](https://docs.streamlit.io/library/get-started) if not using Docker
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) 
 * [VcXserv](https://sourceforge.net/projects/vcxsrv) (on Windows)
 * [XQuartz](https://www.xquartz.org) (on Mac)
