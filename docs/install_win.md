@@ -46,7 +46,7 @@
 
     5. In the next command line, type `set-executionpolicy remotesigned` and Press Enter. Enter `Y` after the prompt is displayed:
 
-    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win6.png)
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win7.png)
 
 3. After the above steps, for subsequent runs, you should be able to right click on run_docker_win.ps1 and click "Run with PowerShell."
 
@@ -56,11 +56,11 @@
 
     3. The web app will have started successfully if you see the following message “You can now view your Streamlit app…”
 
-    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win7.png)
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win8.png)
 
     4. Open up a browser and enter localhost:8501 in the address bar. The analysis app should appear.
 
-    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win8.png)
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win9.png)
 
 4. After the initial set-up, you can open the app by just double-clicking on run_docker_win.ps1 (just need to have both Docker and VcXsrv open, and make sure the VcXsrv settings are configured correctly as described previously).
 
@@ -71,11 +71,11 @@
 2. Go to Docker Desktop, and in the left sidebar, click on Containers.
 3. You should see under “Image” something like roi_analysis_0.1.0 - click on the trash can icon to delete the container.
 
-![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win9.png)
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win10.png)
 
 4. Exit VcXsrv by looking for an X icon in your taskbar icons, right clicking on it, and clicking Exit.
 
-![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win10.png)
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/win/win11.png)
 
 
 
