@@ -10,6 +10,13 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 * Docker image (contact author for access)
 
 ### Installation
+
+For more detailed setup instructions, visit here:
+
+- [Windows installation](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/install_win.md)
+
+- [Mac installation](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/install_mac.md)
+
 1. Install Docker Desktop.
 2. Install VcXserv or XQuartz depending on your OS, and configure to disable access control.
 3. Download the zip file containing the Docker image and unzip the contents.
@@ -61,3 +68,6 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 
 ### Plotting data from chronic imaging sessions
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_chronic.gif)
+
+## [Changelog](https://github.com/janeswh/ca_imaging_analysis/blob/main/CHANGELOG.md)
+
