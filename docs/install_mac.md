@@ -70,11 +70,11 @@
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac13.png)
 
-    2. Go back to Terminal, and in the open window, type cd and then paste or type the file path, example below. Press Enter. Note that your path will be different depending on where you’ve placed the roi_app_x.x.x folder.
+    2. Go back to Terminal, and in the open window, type `cd` and then paste or type the file path, example below. Press Enter. Note that your path will be different depending on where you’ve placed the roi_app_x.x.x folder.
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac14.png)
 
-    3. On the next line, type chmod +x run_docker_mac.sh, as shown below. Press Enter.
+    3. On the next line, type `chmod +x run_docker_mac.sh`, as shown below. Press Enter.
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac15.png)
 
