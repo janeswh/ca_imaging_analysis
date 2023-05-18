@@ -54,6 +54,62 @@
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac10.png)
 
+    1. Then, click on the Apple icon in the top left corner of your screen and click “System Preferences” or “System Settings” depending on your OS version. Find and click on “Security & Privacy”.
+
+    2. This is variable depending on your OS version, but in either the General tab or under the General section, there should be a message similar to “run_docker_mac.sh was blocked from use…”. Click “Open Anyway”. If another warning message pops up, click “Open”.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac11.png)
+
+5. A blank terminal window may open, as shown below.
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac12.png)
+
+    1.Right click on the run_docker_mac.sh file, and click Get Info. Right click on the file path next to “Where:” and click “Copy as Pathname”.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac13.png)
+
+    2. Go back to Terminal, and in the open window, type cd and then paste or type the file path, example below. Press Enter. Note that your path will be different depending on where you’ve placed the roi_app_x.x.x folder.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac13.png)
+
+    3. On the next line, type chmod +x run_docker_mac.sh, as shown below. Press Enter.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac14.png)
+
+6. Go back to your folder in Finder and double click on the run_docker_mac.sh file again.
+
+    1. If you get a message to allow Terminal to access the folder, click OK.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac15.png)
+
+    2. Also click OK when Docker asks for permission to access the folder.
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac16.png)
+
+    3. The web app will have started successfully if you see the following message “You can now view your Streamlit app…”
+
+    ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac17.png)
+
+7. Open up a browser and enter localhost:8501 in the address bar. The analysis app should appear.
+
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac18.png)
+
+8. After the initial set-up, you can open the app by just double-clicking on run_docker_mac.sh (just need to have both Docker and XQuartz open).
+
+## Steps for exiting the script properly
+
+1. Close the browser window where the app is running, and close the Terminal window.
+2. Go to Docker Desktop, and in the left sidebar, click on Containers.
+3. You should see under “Image” something like roi_analysis_0.1.0 - click on the trash can icon to delete the container.
+
+![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/mac/mac19.png)
+
+4. Exit XQuartz.
+
+
+
+
+
+
 
 
 
