@@ -61,21 +61,25 @@ For more detailed setup instructions, visit here:
 ### Collating and analyzing raw .txt files
 Aggregates the raw fluorescence intensity data contained in sets of .txt files, then performs analyses and exports analyzed results to .xlsx files.
 <br />
+
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/load_data.gif)
 
 ### Plotting mean fluorescence values from one imaging session
 Creates interactive plots of the mean fluorescence values from one animal/ROI obtained in one imaging session.
 <br />
+
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_one_session.gif)
 
 ### Plotting data from multiple acute imaging sessions
 Creates interactive plots of odor response properties measured in different animals/ROI across multiple imaging sessions.
 <br />
+
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_multiple_acute.gif)
 
 ### Plotting data from chronic imaging sessions
 Creates interactive plots of odor response properties measured in the same animal across multiple imaging sessions.
 <br />
+
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/docs/media/analysis_screenclips/plot_chronic.gif)
 
 ## [Changelog](https://github.com/janeswh/ca_imaging_analysis/blob/main/CHANGELOG.md)
