@@ -4,12 +4,17 @@ from collections import defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
+import tkinter as tk
+from tkinter.filedialog import askdirectory
 import plotly.io as pio
 
 pio.templates.default = "plotly_white"
 
 from stqdm import stqdm
+import os
+from pathlib import Path
+from natsort import natsort_keygen, natsorted
+import openpyxl
 import pdb
 
 
@@ -67,12 +72,144 @@ def set_color_scales():
     return colorscale
 
 
+class Dataset(object):
+    def __init__(self, animal_id, roi):
+        self.files = st.session_state.files
+        self.animal_id = animal_id
+        self.roi = roi
+        self.sample_type = None
+
+        # makes df for each measurement, for summary csv
+        self.blank_sub_df = pd.DataFrame()
+        self.auc_df = pd.DataFrame()
+        self.latency_df = pd.DataFrame()
+        self.ttpeak_df = pd.DataFrame()
+
+        # df_list = [blank_sub_df, auc_df, latency_df, ttpeak_df]
+
+    def import_data(self):
+        """
+        Loads data from uploaded .xlsx files, drops non-significant response data,
+        and returns only significant data and list of significant odors
+        """
+
+        # makes list to hold exp names with no significant data
+        nosig_exps = []
+
+        # makes list to hold all significant odors
+        all_sig_odors = []
+
+        # makes dict to hold data from all significant odors
+        sig_data_dict = {}
+
+        # make dict to hold significant data sorted by animal id
+        sorted_sig_data_dict = defaultdict(dict)
+
+        # makes df for each measurement, for summary csv
+        blank_sub_df = pd.DataFrame()
+        auc_df = pd.DataFrame()
+        latency_df = pd.DataFrame()
+        ttpeak_df = pd.DataFrame()
+
+        df_list = [blank_sub_df, auc_df, latency_df, ttpeak_df]
+
+        # adds progress bar
+        load_bar = stqdm(st.session_state.files, desc="Loading ")
+        for file in load_bar:
+            # reads avg means into dict, with sheet names/sample # as keys, df
+            # as values
+            exp_name = (
+                file.name.split("_")[0]
+                + "_"
+                + file.name.split("_")[1]
+                + "_"
+                + file.name.split("_")[2]
+            )
+            animal_id = file.name.split("_")[1]
+            roi = exp_name.split("_")[2]
+
+            load_bar.set_description(
+                f"Loading data from {exp_name}", refresh=True
+            )
+
+            data_dict = pd.read_excel(
+                file,
+                sheet_name=None,
+                header=1,
+                index_col=0,
+                na_values="FALSE",
+                dtype="object",
+            )
+
+            make_measurement_dfs(data_dict, animal_id, roi, df_list)
+
+            sig_data_df = pd.DataFrame()
+
+            # drop non-significant colums from each df using NaN values
+            for data_df in data_dict.values():
+                data_df.dropna(axis=1, inplace=True)
+
+                # extracts measurements to plot
+                data_df = data_df.loc[
+                    [
+                        "Blank-subtracted DeltaF/F(%)",
+                        "Area under curve",
+                        "Latency (s)",
+                        "Time to peak (s)",
+                    ]
+                ]
+
+                sig_data_df = pd.concat([sig_data_df, data_df], axis=1)
+
+                # gets list of remaining significant odors
+                sig_odors = data_df.columns.values.tolist()
+
+                all_sig_odors.append(sig_odors)
+
+            sig_data_dict[exp_name] = sig_data_df
+            if not sig_data_df.empty:
+                sorted_sig_data_dict[animal_id][exp_name] = sig_data_df
+            if sig_data_df.empty:
+                nosig_exps.append(exp_name)
+
+        sheetname_list = [
+            "Blank-subtracted DeltaFF(%)",
+            "Area under curve",
+            "Latency (s)",
+            "Time to peak (s)",
+        ]
+
+        for df_ct, df in enumerate(df_list):
+            df = df.reset_index().set_index(["Animal ID", "ROI", sample_type])
+            df.sort_index(inplace=True)
+            df = df.reindex(sorted(df.columns), axis=1)
+
+            xlsx_fname = f"compiled_dataset_analysis.xlsx"
+            xlsx_path = Path(st.session_state.dir_path, xlsx_fname)
+
+            sheetname = sheetname_list[df_ct]
+
+            if os.path.isfile(xlsx_path):  # if it does, write to existing file
+                # if sheet already exists, overwrite it
+                with pd.ExcelWriter(
+                    xlsx_path, mode="a", if_sheet_exists="replace"
+                ) as writer:
+                    df.to_excel(writer, sheetname)
+            else:  # otherwise, write to new file
+                df.to_excel(xlsx_path, sheetname)
+        pdb.set_trace()
+
+        return nosig_exps, all_sig_odors, sig_data_dict, sorted_sig_data_dict
+
+
 def initialize_states():
     """
     Initializes session state variables
     """
 
     # # # --- Initialising SessionState ---
+    if "dir_path" not in st.session_state:
+        st.session_state.dir_path = False
     # makes the avg_means data persist
     if "files" not in st.session_state:
         st.session_state.files = False
@@ -105,12 +242,6 @@ def initialize_states():
         "Time to peak (s)",
     ]
 
-    st.session_state.files = st.file_uploader(
-        label="Choose files",
-        label_visibility="collapsed",
-        accept_multiple_files=True,
-    )
-
 
 def import_data():
     """
@@ -120,6 +251,7 @@ def import_data():
 
     # makes list to hold exp names with no significant data
     nosig_exps = []
+
     # makes list to hold all significant odors
     all_sig_odors = []
 
@@ -128,6 +260,14 @@ def import_data():
 
     # make dict to hold significant data sorted by animal id
     sorted_sig_data_dict = defaultdict(dict)
+
+    # makes df for each measurement, for summary csv
+    blank_sub_df = pd.DataFrame()
+    auc_df = pd.DataFrame()
+    latency_df = pd.DataFrame()
+    ttpeak_df = pd.DataFrame()
+
+    df_list = [blank_sub_df, auc_df, latency_df, ttpeak_df]
 
     # adds progress bar
     load_bar = stqdm(st.session_state.files, desc="Loading ")
@@ -142,6 +282,7 @@ def import_data():
             + file.name.split("_")[2]
         )
         animal_id = file.name.split("_")[1]
+        roi = exp_name.split("_")[2]
 
         load_bar.set_description(f"Loading data from {exp_name}", refresh=True)
 
@@ -153,6 +294,43 @@ def import_data():
             na_values="FALSE",
             dtype="object",
         )
+
+        # make_measurement_dfs(data_dict, animal_id, roi, df_list)
+
+        tuple_dict = {
+            (outerKey, innerKey): values
+            for outerKey, innerDict in data_dict.items()
+            for innerKey, values in innerDict.items()
+        }
+
+        mega_df = pd.DataFrame(tuple_dict)
+        sample_type = mega_df.columns[0][0].split(" ")[0]
+
+        # Replaces values with "" for non-sig responses
+        temp_mega_df = mega_df.T
+        temp_mega_df.loc[
+            temp_mega_df["Significant response?"] == False, "Area under curve"
+        ] = ""
+        temp_mega_df.loc[
+            temp_mega_df["Significant response?"] == False,
+            "Blank-subtracted DeltaF/F(%)",
+        ] = ""
+
+        mega_df = temp_mega_df.copy().T
+
+        for measure_ct, measure in enumerate(st.session_state.measures):
+            temp_measure_df = pd.DataFrame(mega_df.loc[measure]).T.stack().T
+            temp_measure_df["Animal ID"] = animal_id
+            temp_measure_df["ROI"] = roi
+
+            # Renaming sample names for better sorting
+            temp_measure_df.rename(
+                index=lambda x: int(x.split(" ")[1]), inplace=True
+            )
+            temp_measure_df.index.rename(sample_type, inplace=True)
+
+            concat_pd = pd.concat([df_list[measure_ct], temp_measure_df])
+            df_list[measure_ct] = concat_pd
 
         sig_data_df = pd.DataFrame()
 
@@ -183,7 +361,105 @@ def import_data():
         if sig_data_df.empty:
             nosig_exps.append(exp_name)
 
+    sheetname_list = [
+        "Blank-subtracted DeltaFF(%)",
+        "Area under curve",
+        "Latency (s)",
+        "Time to peak (s)",
+    ]
+
+    for df_ct, df in enumerate(df_list):
+        measure = st.session_state.measures[df_ct]
+        df = df.reset_index().set_index(["Animal ID", "ROI", sample_type])
+        df.sort_index(inplace=True)
+        df = df.reindex(sorted(df.columns), axis=1)
+
+        # drop odor 8/blank from df
+        if (measure, "Odor 8") in df.columns:
+            df.drop(columns=[(measure, "Odor 8")], inplace=True)
+
+        xlsx_fname = f"compiled_dataset_analysis.xlsx"
+        xlsx_path = Path(st.session_state.dir_path, xlsx_fname)
+
+        sheetname = sheetname_list[df_ct]
+
+        if os.path.isfile(xlsx_path):  # if it does, write to existing file
+            # if sheet already exists, overwrite it
+            with pd.ExcelWriter(
+                xlsx_path, mode="a", if_sheet_exists="replace"
+            ) as writer:
+                df.to_excel(writer, sheetname)
+        else:  # otherwise, write to new file
+            df.to_excel(xlsx_path, sheetname)
+
+    wb = openpyxl.load_workbook(xlsx_path)
+
+    # Initialize formatting styles
+    no_fill = openpyxl.styles.PatternFill(fill_type=None)
+    side = openpyxl.styles.Side(border_style=None)
+    # side = openpyxl.styles.Side(border_style="thin")
+    no_border = openpyxl.styles.borders.Border(
+        left=side,
+        right=side,
+        top=side,
+        bottom=side,
+    )
+
+    # Loop through all cells in all worksheets
+    for sheet in wb.worksheets:
+        for row in sheet:
+            for cell in row:
+                # Apply colorless and borderless styles
+                cell.fill = no_fill
+                cell.border = no_border
+
+    # Save workbook
+    wb.save(xlsx_path)
+
+    pdb.set_trace()
+
     return nosig_exps, all_sig_odors, sig_data_dict, sorted_sig_data_dict
+
+
+def make_measurement_dfs(data_dict, animal_id, roi, df_list):
+    """
+    Collates the plotted measurements for the dataset into a big df
+
+    """
+    tuple_dict = {
+        (outerKey, innerKey): values
+        for outerKey, innerDict in data_dict.items()
+        for innerKey, values in innerDict.items()
+    }
+
+    mega_df = pd.DataFrame(tuple_dict)
+    sample_type = mega_df.columns[0][0].split(" ")[0]
+
+    # Replaces values with "" for non-sig responses
+    temp_mega_df = mega_df.T
+    temp_mega_df.loc[
+        temp_mega_df["Significant response?"] == False, "Area under curve"
+    ] = ""
+    temp_mega_df.loc[
+        temp_mega_df["Significant response?"] == False,
+        "Blank-subtracted DeltaF/F(%)",
+    ] = ""
+
+    mega_df = temp_mega_df.copy().T
+
+    for measure_ct, measure in enumerate(st.session_state.measures):
+        temp_measure_df = pd.DataFrame(mega_df.loc[measure]).T.stack().T
+        temp_measure_df["Animal ID"] = animal_id
+        temp_measure_df["ROI"] = roi
+
+        # Renaming sample names for better sorting
+        temp_measure_df.rename(
+            index=lambda x: int(x.split(" ")[1]), inplace=True
+        )
+        temp_measure_df.index.rename(sample_type, inplace=True)
+
+        concat_pd = pd.concat([df_list[measure_ct], temp_measure_df])
+        df_list[measure_ct] = concat_pd
 
 
 def get_odor_data(odor):
@@ -528,9 +804,54 @@ def check_sig_odors(odors_list):
         st.session_state.sig_odors.sort()
 
 
+def make_pick_folder_button():
+    """
+    Makes the "Pick folder" button and checks whether it has been clicked.
+    """
+    clicked = st.button("Pick folder")
+    return clicked
+
+
+def pop_folder_selector():
+    """
+    Pops up a dialog to select folder. Won't pop up again when the script
+    re-runs due to user interaction.
+    """
+    # Set up tkinter
+    root = tk.Tk()
+    root.withdraw()
+
+    # Make folder picker dialog appear on top of other windows
+    root.wm_attributes("-topmost", 1)
+
+    dir_path = askdirectory(master=root)
+
+    return dir_path
+
+
 def main():
     set_webapp_params()
     initialize_states()
+
+    save_csv = st.checkbox("Generate dataset summary .csv")
+
+    if save_csv:
+        clicked = make_pick_folder_button()
+
+        if clicked:
+            st.session_state.dir_path = pop_folder_selector()
+
+        if st.session_state.dir_path:
+            st.write("Summary .csv file will be saved to:")
+            st.info(st.session_state.dir_path)
+
+    st.session_state.files = st.file_uploader(
+        label="Choose files",
+        label_visibility="collapsed",
+        accept_multiple_files=True,
+    )
+
+    # pdb.set_trace()
 
     # checks that all the uploaded files are correct
     for file in st.session_state.files:
@@ -558,6 +879,7 @@ def main():
             )
 
             check_sig_odors(odors_list)
+            make_summary_csv()
 
             # if load data is clicked again, doesn't display plots/slider
             st.session_state.pg3_plots_list = False
