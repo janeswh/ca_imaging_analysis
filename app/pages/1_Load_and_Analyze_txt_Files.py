@@ -1,3 +1,9 @@
+from src.utils import (
+    make_pick_folder_button,
+    pop_folder_selector,
+    save_to_excel,
+)
+
 import streamlit as st
 import os
 import pandas as pd
@@ -46,32 +52,6 @@ def get_selected_folder_info(dir_path):
         )
 
     return date, animal_ID, roi
-
-
-def make_pick_folder_button():
-    """
-    Makes the "Pick folder" button and checks whether it has been clicked.
-    """
-    clicked = st.button("Pick folder")
-    return clicked
-
-
-# @st.cache(suppress_st_warning=True)
-def pop_folder_selector():
-    """
-    Pops up a dialog to select folder. Won't pop up again when the script
-    re-runs due to user interaction.
-    """
-    # Set up tkinter
-    root = tk.Tk()
-    root.withdraw()
-
-    # Make folder picker dialog appear on top of other windows
-    root.wm_attributes("-topmost", 1)
-
-    dir_path = askdirectory(master=root)
-
-    return dir_path
 
 
 def get_main_directory():
@@ -198,11 +178,12 @@ def run_analysis(
                     data.all_data_df, data.n_column_labels[n_count]
                 )
 
-                # saves raw means to xlxs file
-                data.save_raw_sample_data(
-                    raw_means, data.n_column_labels[n_count]
+                save_to_excel(
+                    data.session_path,
+                    data.n_column_labels[n_count],
+                    f"{data.date}_{data.animal_id}_{data.ROI_id}_raw_means.xlsx",
+                    raw_means,
                 )
-
                 # performs analysis for each sample
                 analysis_df = data.analyze_signal(avg_means)
 
@@ -492,9 +473,9 @@ class ImagingSession(object):
 
         # Calculates AUC using sum of values from frames # 1-300
         auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
+        auc.clip(lower=0, inplace=True)  # Sets negative AUC values to 0
 
         # Gets AUC_blank from AUC of the last odor
-
         auc_blank = auc[avg_means.columns[-1]]
 
         # Creates 'N/A' template for non-significant odor responses
@@ -604,24 +585,24 @@ class ImagingSession(object):
 
         self.solenoid_df.to_csv(csv_path, index=False)
 
-    def save_raw_sample_data(self, raw_means, sheet_name):
-        """
-        Saves the raw means for each sample into a sheet in xlsx file.
-        """
-        xlsx_fname = (
-            f"{self.date}_{self.animal_id}_{self.ROI_id}_raw_means.xlsx"
-        )
-        xlsx_path = Path(self.session_path, xlsx_fname)
+    # def save_raw_sample_data(self, raw_means, sheet_name):
+    #     """
+    #     Saves the raw means for each sample into a sheet in xlsx file.
+    #     """
+    #     xlsx_fname = (
+    #         f"{self.date}_{self.animal_id}_{self.ROI_id}_raw_means.xlsx"
+    #     )
+    #     xlsx_path = Path(self.session_path, xlsx_fname)
 
-        # checks whether xlsx file already exists
-        if os.path.isfile(xlsx_path):  # if it does, write to existing file
-            # if sheet already exists, overwrite it
-            with pd.ExcelWriter(
-                xlsx_path, mode="a", if_sheet_exists="replace"
-            ) as writer:
-                raw_means.to_excel(writer, sheet_name)
-        else:  # otherwise, write to new file
-            raw_means.to_excel(xlsx_path, sheet_name)
+    #     # checks whether xlsx file already exists
+    #     if os.path.isfile(xlsx_path):  # if it does, write to existing file
+    #         # if sheet already exists, overwrite it
+    #         with pd.ExcelWriter(
+    #             xlsx_path, mode="a", if_sheet_exists="replace"
+    #         ) as writer:
+    #             raw_means.to_excel(writer, sheet_name)
+    #     else:  # otherwise, write to new file
+    #         raw_means.to_excel(xlsx_path, sheet_name)
 
     def save_sig_analysis(self, stats, sheet_name):
         """
