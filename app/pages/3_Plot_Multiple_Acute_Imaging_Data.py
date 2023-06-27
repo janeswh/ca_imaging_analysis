@@ -1,20 +1,19 @@
+from src.utils import (
+    make_pick_folder_button,
+    pop_folder_selector,
+    flatten,
+    save_to_excel,
+)
+
 import streamlit as st
 import pandas as pd
 from collections import defaultdict
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import tkinter as tk
-from tkinter.filedialog import askdirectory
 import plotly.io as pio
 
 pio.templates.default = "plotly_white"
 
 from stqdm import stqdm
-import os
-from pathlib import Path
-import openpyxl
-import pdb
 
 
 def set_webapp_params():
@@ -279,75 +278,14 @@ def import_data():
         if experiment.sig_data_df.empty:
             nosig_exps.append(experiment.exp_name)
 
-    save_to_excel(df_list, experiment.sample_type)
-
-    return nosig_exps, all_sig_odors, sorted_sig_data_dict
-
-
-def save_to_excel(df_list, sample_type):
-    """
-    Saves measurement dfs as one sheet per measurement type into Excel file
-    """
-    sheetname_list = [
-        "Blank-subtracted DeltaFF(%)",
-        "Area under curve",
-        "Latency (s)",
-        "Time to peak (s)",
-    ]
-
-    for df_ct, df in enumerate(df_list):
-        measure = st.session_state.measures[df_ct]
-        df = df.reset_index().set_index(["Animal ID", "ROI", sample_type])
-        df.sort_index(inplace=True)
-        df = df.reindex(sorted(df.columns), axis=1)
-
-        # drop odor 8/blank from df
-        if (measure, "Odor 8") in df.columns:
-            df.drop(columns=[(measure, "Odor 8")], inplace=True)
-
-        xlsx_fname = f"compiled_dataset_analysis.xlsx"
-        xlsx_path = Path(st.session_state.dir_path, xlsx_fname)
-
-        sheetname = sheetname_list[df_ct]
-
-        if os.path.isfile(xlsx_path):  # if it does, write to existing file
-            # if sheet already exists, overwrite it
-            with pd.ExcelWriter(
-                xlsx_path, mode="a", if_sheet_exists="replace"
-            ) as writer:
-                df.to_excel(writer, sheetname)
-        else:  # otherwise, write to new file
-            df.to_excel(xlsx_path, sheetname)
-
-    format_workbook(xlsx_path)
-
-
-def format_workbook(xlsx_path):
-    """
-    Adds borders to Excel spreadsheets
-    """
-    wb = openpyxl.load_workbook(xlsx_path)
-
-    # Initialize formatting styles
-    no_fill = openpyxl.styles.PatternFill(fill_type=None)
-    side = openpyxl.styles.Side(border_style="thin")
-    border = openpyxl.styles.borders.Border(
-        left=side,
-        right=side,
-        top=side,
-        bottom=side,
+    save_to_excel(
+        st.session_state.dir_path,
+        df_list,
+        experiment.sample_type,
+        st.session_state.measures,
     )
 
-    # Loop through all cells in all worksheets
-    for sheet in wb.worksheets:
-        for row in sheet:
-            for cell in row:
-                # Apply colorless and borderless styles
-                cell.fill = no_fill
-                cell.border = border
-
-    # Save workbook
-    wb.save(xlsx_path)
+    return nosig_exps, all_sig_odors, sorted_sig_data_dict
 
 
 def get_odor_data(odor):
@@ -672,15 +610,6 @@ def display_plots():
         )
 
 
-def flatten(arg):
-    """
-    Flattens nested list of sig odors
-    """
-    if not isinstance(arg, list):  # if not list
-        return [arg]
-    return [x for sub in arg for x in flatten(sub)]  # recurse and collect
-
-
 def check_sig_odors(odors_list):
     """
     Checks significant odor responses from loaded data and puts them in a list
@@ -699,31 +628,6 @@ def check_sig_odors(odors_list):
         # gets unique significant odors and puts them in order
         st.session_state.sig_odors = list(dict.fromkeys(flat_odors_list))
         st.session_state.sig_odors.sort()
-
-
-def make_pick_folder_button():
-    """
-    Makes the "Pick folder" button and checks whether it has been clicked.
-    """
-    clicked = st.button("Pick folder")
-    return clicked
-
-
-def pop_folder_selector():
-    """
-    Pops up a dialog to select folder. Won't pop up again when the script
-    re-runs due to user interaction.
-    """
-    # Set up tkinter
-    root = tk.Tk()
-    root.withdraw()
-
-    # Make folder picker dialog appear on top of other windows
-    root.wm_attributes("-topmost", 1)
-
-    dir_path = askdirectory(master=root)
-
-    return dir_path
 
 
 def main():

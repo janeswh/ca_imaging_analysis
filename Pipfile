@@ -8,6 +8,7 @@ streamlit = "*"
 plotly = "*"
 stqdm = "*"
 natsort = "*"
+st-pages = "*"
 
 [dev-packages]
 
