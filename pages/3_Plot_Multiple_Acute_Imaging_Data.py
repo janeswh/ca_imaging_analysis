@@ -113,7 +113,7 @@ class ExperimentFile(object):
 
         self.df_list = df_list
 
-    def import_data(self):
+    def import_excel(self):
         """
         Imports each .xlsx file into dictionary
         """
@@ -173,6 +173,7 @@ class ExperimentFile(object):
         Makes the dfs used for plotting measusrements
         """
         self.sig_data_df = pd.DataFrame()
+        self.sig_odors = []
 
         # drop non-significant colums from each df using NaN values
         for data_df in self.data_dict.values():
@@ -191,7 +192,11 @@ class ExperimentFile(object):
             self.sig_data_df = pd.concat([self.sig_data_df, data_df], axis=1)
 
             # gets list of remaining significant odors
-            self.sig_odors = data_df.columns.values.tolist()
+            if len(data_df.columns.values) == 0:
+                pass
+            else:
+                df_sig_odors = data_df.columns.values.tolist()
+                self.sig_odors.append(df_sig_odors)
 
 
 def initialize_states():
@@ -202,8 +207,6 @@ def initialize_states():
     # # # --- Initialising SessionState ---
     if "dir_path" not in st.session_state:
         st.session_state.dir_path = False
-    if "save_xlsx" not in st.session_state:
-        st.session_state.save_xlsx = False
     # makes the avg_means data persist
     if "files" not in st.session_state:
         st.session_state.files = False
@@ -262,9 +265,8 @@ def import_data():
     load_bar = stqdm(st.session_state.files, desc="Loading ")
     for file in load_bar:
         experiment = ExperimentFile(file, df_list)
-        experiment.import_data()
-        if st.session_state.save_xlsx is True:
-            experiment.sort_data()
+        experiment.import_excel()
+        experiment.sort_data()
         experiment.make_plotting_dfs()
 
         all_sig_odors.append(experiment.sig_odors)
@@ -276,8 +278,8 @@ def import_data():
             ] = experiment.sig_data_df
         if experiment.sig_data_df.empty:
             nosig_exps.append(experiment.exp_name)
-    if st.session_state.save_xlsx is True:
-        save_to_excel(df_list, experiment.sample_type)
+
+    save_to_excel(df_list, experiment.sample_type)
 
     return nosig_exps, all_sig_odors, sorted_sig_data_dict
 
@@ -670,12 +672,21 @@ def display_plots():
         )
 
 
+def flatten(arg):
+    """
+    Flattens nested list of sig odors
+    """
+    if not isinstance(arg, list):  # if not list
+        return [arg]
+    return [x for sub in arg for x in flatten(sub)]  # recurse and collect
+
+
 def check_sig_odors(odors_list):
     """
     Checks significant odor responses from loaded data and puts them in a list
     """
     # flatten list of odors
-    flat_odors_list = [odor for sublist in odors_list for odor in sublist]
+    flat_odors_list = flatten(odors_list)
 
     if len(st.session_state.nosig_exps) == len(st.session_state.files):
         st.error(

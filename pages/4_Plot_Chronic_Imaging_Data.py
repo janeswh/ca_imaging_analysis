@@ -6,12 +6,17 @@ from collections import defaultdict
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import tkinter as tk
+from tkinter.filedialog import askdirectory
 
 import plotly.io as pio
 
 pio.templates.default = "plotly_white"
 
 from stqdm import stqdm
+import os
+from pathlib import Path
+import openpyxl
 import pdb
 
 
@@ -23,10 +28,55 @@ def set_webapp_params():
     st.title("Plot data from chronic imaging sessions")
 
     st.markdown(
+        "Please select the folder where you want to save the summary "
+        ".xlsx file"
+    )
+
+    clicked = make_pick_folder_button()
+
+    if clicked:
+        st.session_state.dir_path = pop_folder_selector()
+
+    if st.session_state.dir_path:
+        st.write("Summary .xlsx file will be saved to:")
+        st.info(st.session_state.dir_path)
+
+    st.markdown(
         "Please select the .xlsx files containing the response properties that you "
         "want to plot. The files should be named in the format "
         "YYMMDD--123456-7-8_ROIX_analysis.xlsx."
     )
+
+    st.session_state.files = st.file_uploader(
+        label="Choose files",
+        label_visibility="collapsed",
+        accept_multiple_files=True,
+    )
+
+
+def make_pick_folder_button():
+    """
+    Makes the "Pick folder" button and checks whether it has been clicked.
+    """
+    clicked = st.button("Pick folder")
+    return clicked
+
+
+def pop_folder_selector():
+    """
+    Pops up a dialog to select folder. Won't pop up again when the script
+    re-runs due to user interaction.
+    """
+    # Set up tkinter
+    root = tk.Tk()
+    root.withdraw()
+
+    # Make folder picker dialog appear on top of other windows
+    root.wm_attributes("-topmost", 1)
+
+    dir_path = askdirectory(master=root)
+
+    return dir_path
 
 
 def set_color_scales():
@@ -71,6 +121,8 @@ def initialize_states():
     """
 
     # # # --- Initialising SessionState ---
+    if "dir_path" not in st.session_state:
+        st.session_state.dir_path = False
     # makes the avg_means data persist
     if "files" not in st.session_state:
         st.session_state.files = False
@@ -107,11 +159,113 @@ def initialize_states():
         "Time to peak (s)",
     ]
 
-    st.session_state.files = st.file_uploader(
-        label="Choose files",
-        label_visibility="collapsed",
-        accept_multiple_files=True,
-    )
+
+class TimepointFile(object):
+    def __init__(self, file, df_list):
+        self.file = file
+        self.sample_type = None
+        self.exp_name = (
+            file.name.split("_")[0]
+            + "_"
+            + file.name.split("_")[1]
+            + "_"
+            + file.name.split("_")[2]
+        )
+        self.animal_id = file.name.split("_")[1]
+        self.date = file.name.split("_")[0]
+        self.roi = self.exp_name.split("_")[2]
+
+        self.data_dict = None
+        self.tuple_dict = None
+        self.mega_df = None
+        self.sig_data_df = None
+        self.sig_odors = None
+
+        self.df_list = df_list
+
+    def import_excel(self):
+        """
+        Imports each .xlsx file into dictionary
+        """
+
+        self.data_dict = pd.read_excel(
+            self.file,
+            sheet_name=None,
+            header=1,
+            index_col=0,
+            na_values="FALSE",
+            dtype="object",
+        )
+
+    def sort_data(self):
+        """
+        Converts imported dict into dataframe for each measurement
+        """
+        self.tuple_dict = {
+            (outerKey, innerKey): values
+            for outerKey, innerDict in self.data_dict.items()
+            for innerKey, values in innerDict.items()
+        }
+
+        self.mega_df = pd.DataFrame(self.tuple_dict)
+        self.sample_type = self.mega_df.columns[0][0].split(" ")[0]
+
+        # Replaces values with "" for non-sig responses
+        temp_mega_df = self.mega_df.T
+        temp_mega_df.loc[
+            temp_mega_df["Significant response?"] == False, "Area under curve"
+        ] = ""
+        temp_mega_df.loc[
+            temp_mega_df["Significant response?"] == False,
+            "Blank-subtracted DeltaF/F(%)",
+        ] = ""
+
+        self.mega_df = temp_mega_df.copy().T
+
+        for measure_ct, measure in enumerate(st.session_state.measures):
+            temp_measure_df = (
+                pd.DataFrame(self.mega_df.loc[measure]).T.stack().T
+            )
+            temp_measure_df["Date"] = self.date
+
+            # Renaming sample names for better sorting
+            temp_measure_df.rename(
+                index=lambda x: int(x.split(" ")[1]), inplace=True
+            )
+            temp_measure_df.index.rename(self.sample_type, inplace=True)
+
+            concat_pd = pd.concat([self.df_list[measure_ct], temp_measure_df])
+            self.df_list[measure_ct] = concat_pd
+
+    def make_plotting_dfs(self):
+        """
+        Makes the dfs used for plotting measusrements
+        """
+        self.sig_data_df = pd.DataFrame()
+        self.sig_odors = []
+
+        # drop non-significant colums from each df using NaN values
+        for data_df in self.data_dict.values():
+            data_df.dropna(axis=1, inplace=True)
+
+            # extracts measurements to plot
+            data_df = data_df.loc[
+                [
+                    "Blank-subtracted DeltaF/F(%)",
+                    "Area under curve",
+                    "Latency (s)",
+                    "Time to peak (s)",
+                ]
+            ]
+
+            self.sig_data_df = pd.concat([self.sig_data_df, data_df], axis=1)
+
+            # gets list of remaining significant odors
+            if len(data_df.columns.values) == 0:
+                pass
+            else:
+                df_sig_odors = data_df.columns.values.tolist()
+                self.sig_odors.append(df_sig_odors)
 
 
 def import_data():
@@ -144,60 +298,107 @@ def import_data():
 
     st.session_state.files = sorted_files
 
+    # makes df for each measurement, for summary csv
+    blank_sub_df = pd.DataFrame()
+    auc_df = pd.DataFrame()
+    latency_df = pd.DataFrame()
+    ttpeak_df = pd.DataFrame()
+
+    df_list = [blank_sub_df, auc_df, latency_df, ttpeak_df]
+
     # adds progress bar
     load_bar = stqdm(st.session_state.files, desc="Loading ")
     for file in load_bar:
-        # reads avg means into dict, with sheet names/sample # as keys, df
-        # as values
-        exp_name = (
-            file.name.split("_")[0]
-            + "_"
-            + file.name.split("_")[1]
-            + "_"
-            + file.name.split("_")[2]
+        timepoint = TimepointFile(file, df_list)
+        all_exps.append(timepoint.exp_name)
+
+        load_bar.set_description(
+            f"Loading data from {timepoint.exp_name}", refresh=True
         )
-        all_exps.append(exp_name)
+        timepoint.import_excel()
+        timepoint.sort_data()
 
-        load_bar.set_description(f"Loading data from {exp_name}", refresh=True)
+        timepoint.make_plotting_dfs()
 
-        data_dict = pd.read_excel(
-            file,
-            sheet_name=None,
-            header=1,
-            index_col=0,
-            na_values="FALSE",
-            dtype="object",
-        )
+        all_sig_odors.append(timepoint.sig_odors)
 
-        sig_data_df = pd.DataFrame()
+        if not timepoint.sig_data_df.empty:
+            sig_data_dict[timepoint.exp_name] = timepoint.sig_data_df
+        if timepoint.sig_data_df.empty:
+            nosig_exps.append(timepoint.exp_name)
 
-        # drop non-significant colums from each df using NaN values
-        for data_df in data_dict.values():
-            data_df.dropna(axis=1, inplace=True)
-
-            # extracts measurements to plot
-            data_df = data_df.loc[
-                [
-                    "Blank-subtracted DeltaF/F(%)",
-                    "Area under curve",
-                    "Latency (s)",
-                    "Time to peak (s)",
-                ]
-            ]
-
-            sig_data_df = pd.concat([sig_data_df, data_df], axis=1)
-
-            # gets list of remaining significant odors
-            sig_odors = data_df.columns.values.tolist()
-
-            all_sig_odors.append(sig_odors)
-
-        if not sig_data_df.empty:
-            sig_data_dict[exp_name] = sig_data_df
-        if sig_data_df.empty:
-            nosig_exps.append(exp_name)
+    save_to_excel(df_list, timepoint.sample_type)
 
     return nosig_exps, all_sig_odors, sig_data_dict, all_exps
+
+
+def save_to_excel(df_list, sample_type):
+    """
+    Saves measurement dfs as one sheet per measurement type into Excel file
+    """
+    sheetname_list = [
+        "Blank-subtracted DeltaFF(%)",
+        "Area under curve",
+        "Latency (s)",
+        "Time to peak (s)",
+    ]
+
+    for df_ct, df in enumerate(df_list):
+        measure = st.session_state.measures[df_ct]
+        df = df.reset_index().set_index(["Date", sample_type])
+        df.sort_index(inplace=True)
+        df = df.reindex(sorted(df.columns), axis=1)
+
+        # drop odor 8/blank from df
+        if (measure, "Odor 8") in df.columns:
+            df.drop(columns=[(measure, "Odor 8")], inplace=True)
+
+        xlsx_fname = f"compiled_dataset_analysis.xlsx"
+        xlsx_path = Path(st.session_state.dir_path, xlsx_fname)
+
+        sheetname = sheetname_list[df_ct]
+
+        if os.path.isfile(xlsx_path):  # if it does, write to existing file
+            # if sheet already exists, overwrite it
+            with pd.ExcelWriter(
+                xlsx_path, mode="a", if_sheet_exists="replace"
+            ) as writer:
+                df.to_excel(writer, sheetname)
+        else:  # otherwise, write to new file
+            df.to_excel(xlsx_path, sheetname)
+
+    format_workbook(xlsx_path)
+
+
+def format_workbook(xlsx_path):
+    """
+    Adds borders to Excel spreadsheets
+    """
+    wb = openpyxl.load_workbook(xlsx_path)
+
+    # Initialize formatting styles
+    no_fill = openpyxl.styles.PatternFill(fill_type=None)
+    side = openpyxl.styles.Side(border_style="thin")
+    border = openpyxl.styles.borders.Border(
+        left=side,
+        right=side,
+        top=side,
+        bottom=side,
+    )
+
+    # Loop through all cells in all worksheets
+    for sheet in wb.worksheets:
+        for row in sheet:
+            for cell in row:
+                # Apply colorless and borderless styles
+                cell.fill = no_fill
+                cell.border = border
+
+        # Add animal ID + ROI in top left cell
+        sheet["A1"] = st.session_state.animal_id
+
+    # Save workbook
+    wb.save(xlsx_path)
 
 
 def get_odor_data(odor):
@@ -406,12 +607,23 @@ def display_plots():
         )
 
 
+def flatten(arg):
+    """
+    Flattens nested list of sig odors
+    """
+    if not isinstance(arg, list):  # if not list
+        return [arg]
+    return [x for sub in arg for x in flatten(sub)]  # recurse and collect
+
+
 def check_sig_odors(odors_list):
     """
     Checks significant odor responses from loaded data and puts them in a list
     """
     # flatten list of odors
-    flat_odors_list = [odor for sublist in odors_list for odor in sublist]
+    flat_odors_list = flatten(odors_list)
+
+    # flat_odors_list = [odor for sublist in odors_list for odor in sublist]
 
     if len(st.session_state.nosig_exps) == len(st.session_state.files):
         st.error(
@@ -427,8 +639,8 @@ def check_sig_odors(odors_list):
 
 
 def main():
-    set_webapp_params()
     initialize_states()
+    set_webapp_params()
 
     # checks that all the uploaded files are correct
     for file in st.session_state.files:
