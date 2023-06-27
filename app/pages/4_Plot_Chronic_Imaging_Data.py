@@ -130,7 +130,7 @@ def initialize_states():
     # measures to plot
     st.session_state.measures = [
         "Blank-subtracted DeltaF/F(%)",
-        "Area under curve",
+        "Blank sub AUC",
         "Latency (s)",
         "Time to peak (s)",
     ]
@@ -189,7 +189,7 @@ class TimepointFile(object):
         # Replaces values with "" for non-sig responses
         temp_mega_df = self.mega_df.T
         temp_mega_df.loc[
-            temp_mega_df["Significant response?"] == False, "Area under curve"
+            temp_mega_df["Significant response?"] == False, "Blank sub AUC"
         ] = ""
         temp_mega_df.loc[
             temp_mega_df["Significant response?"] == False,
@@ -228,7 +228,7 @@ class TimepointFile(object):
             data_df = data_df.loc[
                 [
                     "Blank-subtracted DeltaF/F(%)",
-                    "Area under curve",
+                    "Blank sub AUC",
                     "Latency (s)",
                     "Time to peak (s)",
                 ]
@@ -357,10 +357,7 @@ def plot_odor_measure_fig(
     # generates list holding the mean values for plotting later
     # fills non-sig sessions with 0 or nan depending on measure
 
-    if (
-        measure == "Blank-subtracted DeltaF/F(%)"
-        or measure == "Area under curve"
-    ):
+    if measure == "Blank-subtracted DeltaF/F(%)" or measure == "Blank sub AUC":
         avgs = [0] * len(st.session_state.sorted_dates)
     elif measure == "Latency (s)" or measure == "Time to peak (s)":
         avgs = [nan] * len(st.session_state.sorted_dates)

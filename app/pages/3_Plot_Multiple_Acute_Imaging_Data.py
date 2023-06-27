@@ -142,7 +142,7 @@ class ExperimentFile(object):
         # Replaces values with "" for non-sig responses
         temp_mega_df = self.mega_df.T
         temp_mega_df.loc[
-            temp_mega_df["Significant response?"] == False, "Area under curve"
+            temp_mega_df["Significant response?"] == False, "Blank sub AUC"
         ] = ""
         temp_mega_df.loc[
             temp_mega_df["Significant response?"] == False,
@@ -182,7 +182,7 @@ class ExperimentFile(object):
             data_df = data_df.loc[
                 [
                     "Blank-subtracted DeltaF/F(%)",
-                    "Area under curve",
+                    "Blank sub AUC",
                     "Latency (s)",
                     "Time to peak (s)",
                 ]
@@ -233,7 +233,7 @@ def initialize_states():
     # measures to plot
     st.session_state.measures = [
         "Blank-subtracted DeltaF/F(%)",
-        "Area under curve",
+        "Blank sub AUC",
         "Latency (s)",
         "Time to peak (s)",
     ]
