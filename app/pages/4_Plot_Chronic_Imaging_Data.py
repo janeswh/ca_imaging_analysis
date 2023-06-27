@@ -1,9 +1,14 @@
 from src.utils import (
     make_pick_folder_button,
     pop_folder_selector,
-    flatten,
+    get_odor_data,
     sort_measurements_df,
+    check_sig_odors,
 )
+
+from src.experiment import ExperimentFile
+
+from src.plotting import set_color_scales
 
 import streamlit as st
 import pandas as pd
@@ -55,42 +60,6 @@ def set_webapp_params():
     )
 
 
-def set_color_scales():
-    """
-    Creates fixed color scales used for plotting
-    """
-
-    #  this creates color scales for 6 animals with 2 ROIs each
-    colorscale = {
-        "marker": {
-            1: "rgba(162, 255, 255, 0.5)",
-            2: "rgba(126, 233, 255, 0.5)",
-            3: "rgba(87, 202, 255, 0.5)",
-            4: "rgba(36, 172, 255, 0.5)",
-            5: "rgba(0, 142, 227, 0.5)",
-            6: "rgba(0, 114, 196, 0.5)",
-            7: "rgb(0, 87, 165, 0.5)",
-            8: "rgba(0, 62, 135, 0.5)",
-            9: "rgba(0, 38, 107, 0.5)",
-            10: "rgba(0, 15, 79, 0.5)",
-            11: "rgba(162, 255, 255, 0.5)",
-            12: "rgba(126, 233, 255, 0.5)",
-            13: "rgba(87, 202, 255, 0.5)",
-            14: "rgba(36, 172, 255, 0.5)",
-            15: "rgba(0, 142, 227, 0.5)",
-            16: "rgba(0, 114, 196, 0.5)",
-            17: "rgb(0, 87, 165, 0.5)",
-            18: "rgba(0, 62, 135, 0.5)",
-            19: "rgba(0, 38, 107, 0.5)",
-            20: "rgba(0, 15, 79, 0.5)"
-            # 10: "#000f4f",
-        },
-        "lines": "#000f4f",
-    }
-
-    return colorscale
-
-
 def initialize_states():
     """
     Initializes session state variables
@@ -136,114 +105,6 @@ def initialize_states():
     ]
 
 
-class TimepointFile(object):
-    def __init__(self, file, df_list):
-        self.file = file
-        self.sample_type = None
-        self.exp_name = (
-            file.name.split("_")[0]
-            + "_"
-            + file.name.split("_")[1]
-            + "_"
-            + file.name.split("_")[2]
-        )
-        self.animal_id = file.name.split("_")[1]
-        self.date = file.name.split("_")[0]
-        self.roi = self.exp_name.split("_")[2]
-
-        self.data_dict = None
-        self.tuple_dict = None
-        self.mega_df = None
-        self.sig_data_df = None
-        self.sig_odors = None
-
-        self.df_list = df_list
-
-    def import_excel(self):
-        """
-        Imports each .xlsx file into dictionary
-        """
-
-        self.data_dict = pd.read_excel(
-            self.file,
-            sheet_name=None,
-            header=1,
-            index_col=0,
-            na_values="FALSE",
-            dtype="object",
-        )
-
-    def sort_data(self):
-        """
-        Converts imported dict into dataframe for each measurement
-        """
-        self.tuple_dict = {
-            (outerKey, innerKey): values
-            for outerKey, innerDict in self.data_dict.items()
-            for innerKey, values in innerDict.items()
-        }
-
-        self.mega_df = pd.DataFrame(self.tuple_dict)
-        self.sample_type = self.mega_df.columns[0][0].split(" ")[0]
-
-        # Replaces values with "" for non-sig responses
-        temp_mega_df = self.mega_df.T
-        temp_mega_df.loc[
-            temp_mega_df["Significant response?"] == False, "Blank sub AUC"
-        ] = ""
-        temp_mega_df.loc[
-            temp_mega_df["Significant response?"] == False,
-            "Blank-subtracted DeltaF/F(%)",
-        ] = ""
-
-        self.mega_df = temp_mega_df.copy().T
-
-        for measure_ct, measure in enumerate(st.session_state.measures):
-            temp_measure_df = (
-                pd.DataFrame(self.mega_df.loc[measure]).T.stack().T
-            )
-            temp_measure_df["Date"] = self.date
-
-            # Renaming sample names for better sorting
-            temp_measure_df.rename(
-                index=lambda x: int(x.split(" ")[1]), inplace=True
-            )
-            temp_measure_df.index.rename(self.sample_type, inplace=True)
-
-            concat_pd = pd.concat([self.df_list[measure_ct], temp_measure_df])
-            self.df_list[measure_ct] = concat_pd
-
-    def make_plotting_dfs(self):
-        """
-        Makes the dfs used for plotting measusrements
-        """
-        self.sig_data_df = pd.DataFrame()
-        self.sig_odors = []
-
-        # drop non-significant colums from each df using NaN values
-        for data_df in self.data_dict.values():
-            data_df.dropna(axis=1, inplace=True)
-
-            # extracts measurements to plot
-            data_df = data_df.loc[
-                [
-                    "Blank-subtracted DeltaF/F(%)",
-                    "Blank sub AUC",
-                    "Latency (s)",
-                    "Time to peak (s)",
-                ]
-            ]
-
-            self.sig_data_df = pd.concat([self.sig_data_df, data_df], axis=1)
-
-            # gets list of remaining significant odors
-            if len(data_df.columns.values) == 0:
-                pass
-            else:
-                df_sig_odors = data_df.columns.values.tolist()
-                self.sig_odors.append(df_sig_odors)
-
-
 def import_data():
     """
     Loads data from uploaded .xlsx files, drops non-significant response data,
@@ -285,7 +146,7 @@ def import_data():
     # adds progress bar
     load_bar = stqdm(st.session_state.files, desc="Loading ")
     for file in load_bar:
-        timepoint = TimepointFile(file, df_list)
+        timepoint = ExperimentFile(file, df_list, chronic=True)
         all_exps.append(timepoint.exp_name)
 
         load_bar.set_description(
@@ -303,14 +164,6 @@ def import_data():
         if timepoint.sig_data_df.empty:
             nosig_exps.append(timepoint.exp_name)
 
-    # save_to_excel(
-    #     st.session_state.dir_path,
-    #     df_list,
-    #     timepoint.sample_type,
-    #     st.session_state.measures,
-    #     chronic=True,
-    # )
-
     sort_measurements_df(
         st.session_state.dir_path,
         "compiled_dataset_analysis.xlsx",
@@ -322,24 +175,6 @@ def import_data():
     )
 
     return nosig_exps, all_sig_odors, sig_data_dict, all_exps
-
-
-def get_odor_data(odor):
-    """
-    Collects the data for odors with significant responses
-    """
-
-    # makes list of experiments that have sig responses for
-    # the odor
-    sig_odor_exps = []
-
-    for experiment in st.session_state.sig_data.keys():
-        if odor in st.session_state.sig_data[experiment]:
-            sig_odor_exps.append(experiment)
-
-    total_sessions = len(sig_odor_exps)
-
-    return sig_odor_exps, total_sessions
 
 
 def plot_odor_measure_fig(
@@ -480,13 +315,15 @@ def generate_plots():
 
     plots_list = defaultdict(dict)
 
-    color_scale = set_color_scales()
+    color_scale = set_color_scales("chronic")
 
     # adds progress bar
     odor_bar = stqdm(st.session_state.sig_odors, desc="Plotting ")
 
     for odor in odor_bar:
-        sig_odor_exps, total_sessions = get_odor_data(odor)
+        odor_data = get_odor_data(odor, "chronic", st.session_state.sig_data)
+        sig_odor_exps = odor_data[0]
+        total_sessions = odor_data[1]
 
         for measure in st.session_state.measures:
             measure_fig = plot_odor_measure_fig(
@@ -527,28 +364,6 @@ def display_plots():
         )
 
 
-def check_sig_odors(odors_list):
-    """
-    Checks significant odor responses from loaded data and puts them in a list
-    """
-    # flatten list of odors
-    flat_odors_list = flatten(odors_list)
-
-    # flat_odors_list = [odor for sublist in odors_list for odor in sublist]
-
-    if len(st.session_state.nosig_exps) == len(st.session_state.files):
-        st.error(
-            "None of the uploaded experiments have significant "
-            " odor responses. Please upload data for experiments with "
-            " significant responses to plot the response measurements."
-        )
-
-    else:
-        # gets unique significant odors and puts them in order
-        st.session_state.sig_odors = list(dict.fromkeys(flat_odors_list))
-        st.session_state.sig_odors.sort()
-
-
 def main():
     initialize_states()
     set_webapp_params()
@@ -579,7 +394,7 @@ def main():
                 f"animal ID {st.session_state.animal_id}."
             )
 
-            check_sig_odors(odors_list)
+            st.session_state.sig_odors = check_sig_odors(odors_list)
 
             # if load data is clicked again, doesn't display plots/slider
             st.session_state.pg4_plots_list = False

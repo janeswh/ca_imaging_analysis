@@ -10,6 +10,50 @@ from natsort import natsorted
 import pdb
 
 
+def get_odor_data(odor, dataset_type, data_dict):
+    """
+    Collects the data for odors with significant responses
+    """
+
+    if dataset_type == "acute":
+        # makes list of experiments that have sig responses for
+        # the odor
+        sig_odor_exps = {}
+
+        # makes list of number of ROIs per animal
+        all_roi_counts = []
+
+        for animal_id in data_dict:
+            animal_exp_list = []
+
+            for exp_ct, experiment in enumerate(data_dict[animal_id].keys()):
+                if odor in data_dict[animal_id][experiment]:
+                    animal_exp_list.append(experiment)
+                    sig_odor_exps[animal_id] = animal_exp_list
+
+            roi_count = len(animal_exp_list)
+            all_roi_counts.append(roi_count)
+
+        total_animals = len(sig_odor_exps)
+
+        data = [sig_odor_exps, all_roi_counts, total_animals]
+
+    elif dataset_type == "chronic":
+        # makes list of experiments that have sig responses for
+        # the odor
+        sig_odor_exps = []
+
+        for experiment in data_dict.keys():
+            if odor in data_dict[experiment]:
+                sig_odor_exps.append(experiment)
+
+        total_sessions = len(sig_odor_exps)
+
+        data = [sig_odor_exps, total_sessions]
+
+    return data
+
+
 def sort_measurements_df(
     dir_path,
     xlsx_fname,
@@ -101,6 +145,28 @@ def format_workbook(xlsx_path, animal_id=None):
 
     # Save workbook
     wb.save(xlsx_path)
+
+
+def check_sig_odors(odors_list):
+    """
+    Checks significant odor responses from loaded data and puts them in a list
+    """
+    # flatten list of odors
+    flat_odors_list = flatten(odors_list)
+
+    if len(st.session_state.nosig_exps) == len(st.session_state.files):
+        st.error(
+            "None of the uploaded experiments have significant "
+            " odor responses. Please upload data for experiments with "
+            " significant responses to plot the response measurements."
+        )
+
+    else:
+        # gets unique significant odors and puts them in order
+        sig_odors = list(dict.fromkeys(flat_odors_list))
+        sig_odors.sort()
+
+        return sig_odors
 
 
 def flatten(arg):
