@@ -6,6 +6,7 @@ import openpyxl
 import streamlit as st
 import tkinter as tk
 from tkinter.filedialog import askdirectory
+from natsort import natsorted
 import pdb
 
 
@@ -35,6 +36,7 @@ def sort_measurements_df(
             df = df.reset_index().set_index(["Animal ID", "ROI", sample_type])
         df.sort_index(inplace=True)
         df = df.reindex(sorted(df.columns), axis=1)
+        df.drop(columns=[(measure, "Odor 2")], inplace=True)
 
         # Manually add back empty/non-sig odor columns to reduce confusion
         for odor in odors_list:
@@ -44,7 +46,9 @@ def sort_measurements_df(
         # Drop odor 8/blank from df
         if (measure, "Odor 8") in df.columns:
             df.drop(columns=[(measure, "Odor 8")], inplace=True)
+        columns_list = [(f"{measure}", f"Odor {x}") for x in range(1, 8)]
 
+        df = df[columns_list]  # Reorders Odor columns list
         sheetname = sheetname_list[df_ct]
         save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id)
 
