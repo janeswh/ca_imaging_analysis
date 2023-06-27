@@ -21,7 +21,7 @@ def sort_measurements_df(
 ):
     sheetname_list = [
         "Blank-subtracted DeltaFF(%)",
-        "Area under curve",
+        "Blank sub AUC",
         "Latency (s)",
         "Time to peak (s)",
     ]
