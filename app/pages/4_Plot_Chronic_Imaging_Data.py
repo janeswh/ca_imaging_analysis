@@ -2,7 +2,7 @@ from src.utils import (
     make_pick_folder_button,
     pop_folder_selector,
     flatten,
-    save_to_excel,
+    sort_measurements_df,
 )
 
 import streamlit as st
@@ -303,12 +303,22 @@ def import_data():
         if timepoint.sig_data_df.empty:
             nosig_exps.append(timepoint.exp_name)
 
-    save_to_excel(
+    # save_to_excel(
+    #     st.session_state.dir_path,
+    #     df_list,
+    #     timepoint.sample_type,
+    #     st.session_state.measures,
+    #     chronic=True,
+    # )
+
+    sort_measurements_df(
         st.session_state.dir_path,
+        "compiled_dataset_analysis.xlsx",
         df_list,
         timepoint.sample_type,
         st.session_state.measures,
         chronic=True,
+        animal_id=st.session_state.animal_id,
     )
 
     return nosig_exps, all_sig_odors, sig_data_dict, all_exps

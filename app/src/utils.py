@@ -9,10 +9,15 @@ from tkinter.filedialog import askdirectory
 import pdb
 
 
-def save_to_excel(dir_path, df_list, sample_type, measures, chronic=False):
-    """
-    Saves measurement dfs as one sheet per measurement type into Excel file
-    """
+def sort_measurements_df(
+    dir_path,
+    xlsx_fname,
+    df_list,
+    sample_type,
+    measures,
+    chronic=False,
+    animal_id=None,
+):
     sheetname_list = [
         "Blank-subtracted DeltaFF(%)",
         "Area under curve",
@@ -40,24 +45,31 @@ def save_to_excel(dir_path, df_list, sample_type, measures, chronic=False):
         if (measure, "Odor 8") in df.columns:
             df.drop(columns=[(measure, "Odor 8")], inplace=True)
 
-        xlsx_fname = f"compiled_dataset_analysis.xlsx"
-        xlsx_path = Path(dir_path, xlsx_fname)
-
         sheetname = sheetname_list[df_ct]
-
-        if os.path.isfile(xlsx_path):  # if it does, write to existing file
-            # if sheet already exists, overwrite it
-            with pd.ExcelWriter(
-                xlsx_path, mode="a", if_sheet_exists="replace"
-            ) as writer:
-                df.to_excel(writer, sheetname)
-        else:  # otherwise, write to new file
-            df.to_excel(xlsx_path, sheetname)
-
-    format_workbook(xlsx_path)
+        save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id)
 
 
-def format_workbook(xlsx_path):
+def save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id=None):
+    """
+    Saves measurement dfs as one sheet per measurement type into Excel file
+    """
+
+    # xlsx_fname = f"compiled_dataset_analysis.xlsx"
+    xlsx_path = Path(dir_path, xlsx_fname)
+
+    if os.path.isfile(xlsx_path):  # if it does, write to existing file
+        # if sheet already exists, overwrite it
+        with pd.ExcelWriter(
+            xlsx_path, mode="a", if_sheet_exists="replace"
+        ) as writer:
+            df.to_excel(writer, sheetname)
+    else:  # otherwise, write to new file
+        df.to_excel(xlsx_path, sheetname)
+
+    format_workbook(xlsx_path, animal_id)
+
+
+def format_workbook(xlsx_path, animal_id=None):
     """
     Adds borders to Excel spreadsheets
     """
@@ -75,6 +87,8 @@ def format_workbook(xlsx_path):
 
     # Loop through all cells in all worksheets
     for sheet in wb.worksheets:
+        if animal_id:
+            sheet["A1"] = animal_id
         for row in sheet:
             for cell in row:
                 # Apply colorless and borderless styles

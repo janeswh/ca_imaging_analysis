@@ -2,7 +2,7 @@ from src.utils import (
     make_pick_folder_button,
     pop_folder_selector,
     flatten,
-    save_to_excel,
+    sort_measurements_df,
 )
 
 import streamlit as st
@@ -278,8 +278,9 @@ def import_data():
         if experiment.sig_data_df.empty:
             nosig_exps.append(experiment.exp_name)
 
-    save_to_excel(
+    sort_measurements_df(
         st.session_state.dir_path,
+        "compiled_dataset_analysis.xlsx",
         df_list,
         experiment.sample_type,
         st.session_state.measures,
