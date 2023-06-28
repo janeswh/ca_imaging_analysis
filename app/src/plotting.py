@@ -2,8 +2,10 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from math import nan
 import pandas as pd
+import streamlit as st
 
 pio.templates.default = "plotly_white"
+import pdb
 
 
 def set_color_scales(dataset_type):
@@ -106,7 +108,7 @@ def plot_acute_odor_measure_fig(
 
             # only adds mean line if there is more than one pt
             if isinstance(exp_odor_df.loc[measure], pd.Series):
-                measure_fig = add_acute_mean_line(
+                add_acute_mean_line(
                     measure_fig,
                     total_animals,
                     total_cols,
@@ -117,6 +119,50 @@ def plot_acute_odor_measure_fig(
                     measure,
                     exp_odor_df,
                 )
+
+    return measure_fig
+
+
+def plot_chronic_odor_measure_fig(
+    sig_odor_exps,
+    data_dict,
+    odor,
+    measure,
+    sorted_dates,
+):
+    """
+    Plots the analysis values for specified odor and measurement
+    """
+    measure_fig = go.Figure()
+
+    # generates list holding the mean values for plotting later
+    # fills non-sig sessions with 0 or nan depending on measure
+
+    if measure == "Blank-subtracted DeltaF/F(%)" or measure == "Blank sub AUC":
+        avgs = [0] * len(sorted_dates)
+    elif measure == "Latency (s)" or measure == "Time to peak (s)":
+        avgs = [nan] * len(sorted_dates)
+
+    for exp_ct, sig_experiment in enumerate(sig_odor_exps):
+        # gets the timepoint position of the experiment
+        interval_ct = sorted_dates.index(sig_experiment) + 1
+        exp_odor_df = data_dict[sig_experiment][odor]
+
+        add_measure_trace(
+            measure_fig,
+            exp_ct,
+            sig_experiment,
+            "chronic",
+            interval_ct,
+            exp_odor_df.loc[measure],
+        )
+
+        # only adds mean value to list for plotting if
+        # there is more than one pt per exp
+        if isinstance(exp_odor_df.loc[measure], pd.Series):
+            avgs[interval_ct - 1] = exp_odor_df.loc[measure].values.mean()
+
+    add_chronic_means(measure_fig, sorted_dates, measure, avgs)
 
     return measure_fig
 
@@ -156,7 +202,33 @@ def add_acute_mean_line(
         y1=exp_odor_df.loc[measure].values.mean(),
     )
 
-    return fig
+
+def add_chronic_means(measure_fig, sorted_dates, measure, avgs):
+    # makes x-axis values for mean trace
+    x_vals = list(range(1, len(sorted_dates) + 1))
+
+    # adds mean line
+    measure_fig.add_trace(
+        go.Scatter(
+            x=x_vals,
+            y=avgs,
+            mode="lines",
+            line=dict(color="orange", dash="dot"),
+            name="Mean",
+        )
+    )
+
+    # adds mean point dots for latency and time to peak
+    if measure == "Latency (s)" or measure == "Time to peak (s)":
+        measure_fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=avgs,
+                mode="markers",
+                marker=dict(color="orange"),
+                name="Single Mean",
+            )
+        )
 
 
 def add_measure_trace(
@@ -167,7 +239,6 @@ def add_measure_trace(
     x_interval,
     y_values,
     animal_ct=None,
-    interval_ct=None,
 ):
     # checks whether values need to be put in artificial list
     if isinstance(y_values, pd.Series):
@@ -183,7 +254,7 @@ def add_measure_trace(
         line_color = color_scale["lines"][animal_ct + 1][exp_ct]
         legend_group = animal_ct
     elif dataset_type == "chronic":
-        marker_color = color_scale["marker"][interval_ct]
+        marker_color = color_scale["marker"][x_interval]
         line_color = color_scale["lines"]
         legend_group = exp_ct
 
@@ -301,12 +372,11 @@ def position_acute_mean_line(
     return x0, x1
 
 
-def format_fig(fig, measure):
+def format_fig(fig, measure, dataset_type, interval=None, sorted_dates=None):
     """
     Formats the legend, axes, and titles of the fig
     """
     #  below is code from stack overflow to hide duplicate legends
-
     names = set()
     fig.for_each_trace(
         lambda trace: trace.update(showlegend=False)
@@ -314,7 +384,17 @@ def format_fig(fig, measure):
         else names.add(trace.name)
     )
 
-    fig.update_xaxes(showticklabels=True, title_text="<br />Animal ID")
+    fig.update_xaxes(
+        showticklabels=True,
+        title_text="<br />Animal ID"
+        if dataset_type == "acute"
+        else f"<br />{interval}",
+    )
+    if dataset_type == "chronic":
+        fig.update_xaxes(
+            tickvals=list(range(1, len(sorted_dates) + 1)),
+            range=[0.5, len(sorted_dates) + 1],
+        )
 
     fig.update_yaxes(
         title_text=measure,
@@ -326,8 +406,6 @@ def format_fig(fig, measure):
         )
 
     fig.update_layout(
-        boxmode="group",
-        boxgap=0.4,
         title={
             "text": measure,
             "x": 0.4,
@@ -337,4 +415,5 @@ def format_fig(fig, measure):
         showlegend=True,
     )
 
-    return fig
+    if dataset_type == "acute":
+        fig.update_layout(boxmode="group", boxgap=0.4)

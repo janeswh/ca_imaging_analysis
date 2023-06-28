@@ -1,12 +1,13 @@
 import pandas as pd
 import streamlit as st
+import pdb
 
 
 class ExperimentFile(object):
-    def __init__(self, file, df_list, chronic=False):
+    def __init__(self, file, df_list, dataset_type):
         self.file = file
         self.sample_type = None
-        self.chronic = chronic
+        self.dataset_type = dataset_type
         self.exp_name = (
             file.name.split("_")[0]
             + "_"
@@ -17,7 +18,7 @@ class ExperimentFile(object):
         self.animal_id = file.name.split("_")[1]
         self.roi = self.exp_name.split("_")[2]
 
-        if chronic:
+        if self.dataset_type == "chronic":
             self.date = file.name.split("_")[0]
 
         self.data_dict = None
@@ -72,7 +73,7 @@ class ExperimentFile(object):
                 pd.DataFrame(self.mega_df.loc[measure]).T.stack().T
             )
 
-            if self.chronic:
+            if self.dataset_type == "chronic":
                 temp_measure_df["Date"] = self.date
             else:
                 temp_measure_df["Animal ID"] = self.animal_id
