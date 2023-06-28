@@ -3,6 +3,7 @@ import pandas as pd
 from collections import defaultdict
 from stqdm import stqdm
 import streamlit as st
+from datetime import datetime
 
 from src.utils import save_to_excel
 
@@ -14,6 +15,8 @@ from src.plotting import (
 )
 
 from src.experiment import ExperimentFile
+
+import pdb
 
 
 def make_empty_containers(dataset_type):
@@ -104,12 +107,24 @@ def import_all_excel_data(dataset_type, files):
     # makes df for each measurement, for summary csv
     df_list = make_empty_measurements_df()
 
+    if dataset_type == "chronic":
+        files = sort_files_by_date(files)
+
     # adds progress bar
     load_bar = stqdm(files, desc="Loading ")
     for file in load_bar:
         load_file(load_bar, file, df_list, dict_list, dataset_type)
 
     return [dict_list, df_list]
+
+
+def sort_files_by_date(files):
+    sorted_files = sorted(
+        files,
+        key=lambda file: datetime.strptime(file.name.split("_")[0], "%y%m%d"),
+    )
+
+    return sorted_files
 
 
 def get_odor_data(odor, dataset_type, data_dict):
@@ -196,7 +211,13 @@ def sort_measurements_df(
 
         df = df[columns_list]  # Reorders Odor columns list
         sheetname = sheetname_list[df_ct]
-        save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id)
+        add_label = False
+        if dataset_type == "chronic":
+            add_label = True
+
+        save_to_excel(
+            dir_path, sheetname, xlsx_fname, df, animal_id, add_label
+        )
 
 
 def generate_plots(
@@ -296,3 +317,26 @@ def display_plots(measures_list, plots_list, selected_odor):
     """
     for measure in measures_list:
         st.plotly_chart(plots_list[selected_odor][measure])
+
+
+def process_txt_file(data, n_count, bar, sample_type):
+    raw_means, avg_means = data.collect_per_sample(
+        data.all_data_df, data.n_column_labels[n_count]
+    )
+
+    save_to_excel(
+        data.session_path,
+        data.n_column_labels[n_count],
+        f"{data.date}_{data.animal_id}_{data.ROI_id}_raw_means.xlsx",
+        raw_means,
+    )
+    # performs analysis for each sample
+    analysis_df = data.analyze_signal(avg_means)
+
+    # save avg_means to xlxs file
+    data.save_avg_means(avg_means, data.n_column_labels[n_count])
+
+    # save analyses values to xlxs file
+    data.save_sig_analysis(analysis_df, data.n_column_labels[n_count])
+
+    bar.set_description(f"Analyzing {sample_type} {n_count+1}", refresh=True)

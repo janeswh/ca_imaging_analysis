@@ -117,10 +117,16 @@ def get_data():
     Loads data from uploaded .xlsx files, drops non-significant response data,
     and returns only significant data and list of significant odors
     """
+
     dict_list, df_list = import_all_excel_data(
         "chronic", st.session_state.chronic_files
     )
     sample_type = df_list[0].index.name
+
+    st.session_state.animal_id = (
+        f"{st.session_state.chronic_files[0].name.split('_')[1]}_"
+        f"{st.session_state.chronic_files[0].name.split('_')[2]}"
+    )
 
     sort_measurements_df(
         st.session_state.chronic_dir_path,

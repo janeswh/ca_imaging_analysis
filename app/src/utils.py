@@ -10,6 +10,31 @@ from tkinter.filedialog import askdirectory
 import pdb
 
 
+def check_solenoid_file(date, animal_id, ROI_id, session_path):
+    """
+    Checks that the solenoid .txt file is named properly and present.
+    """
+    solenoid_filename = (
+        date + "_" + animal_id + "_" + ROI_id + "_solenoid_info.txt"
+    )
+
+    solenoid_path = Path(session_path, solenoid_filename)
+
+    # reads first line of solenoid order txt file
+    try:
+        with open(solenoid_path) as f:
+            solenoid_order_raw = f.readline()
+    except OSError:
+        st.error(
+            "Please make sure that the solenoid info txt file is "
+            "present in the directory and named correctly in the "
+            "format YYMMDD_123456-7-8_ROIX_solenoid_info.txt."
+        )
+        solenoid_order_raw = None
+
+    return solenoid_order_raw
+
+
 def check_uploaded_files(files):
     """
     Checks that files are correct
@@ -28,7 +53,9 @@ def check_uploaded_files(files):
     return files_correct
 
 
-def save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id=None):
+def save_to_excel(
+    dir_path, sheetname, xlsx_fname, df, animal_id=None, add_label=False
+):
     """
     Saves measurement dfs as one sheet per measurement type into Excel file
     """
@@ -45,10 +72,10 @@ def save_to_excel(dir_path, sheetname, xlsx_fname, df, animal_id=None):
     else:  # otherwise, write to new file
         df.to_excel(xlsx_path, sheetname)
 
-    format_workbook(xlsx_path, animal_id)
+    format_workbook(xlsx_path, animal_id, add_label)
 
 
-def format_workbook(xlsx_path, animal_id=None):
+def format_workbook(xlsx_path, animal_id=None, add_label=False):
     """
     Adds borders to Excel spreadsheets
     """
@@ -66,7 +93,7 @@ def format_workbook(xlsx_path, animal_id=None):
 
     # Loop through all cells in all worksheets
     for sheet in wb.worksheets:
-        if animal_id:
+        if add_label:
             sheet["A1"] = animal_id
         for row in sheet:
             for cell in row:
@@ -132,3 +159,46 @@ def pop_folder_selector():
     dir_path = askdirectory(master=root)
 
     return dir_path
+
+
+def get_selected_folder_info(dir_path):
+    """
+    Gets the date, animal ID, and ROI info from the selected folder.
+    """
+    st.write("Selected folder:")
+    st.info(dir_path)
+    folder = os.path.basename(dir_path)
+    try:
+        date, animal_ID, roi = get_session_info(folder)
+
+    except IndexError:
+        date = animal_ID = roi = None
+        st.error(
+            "Please ensure that you've selected the desired folder by "
+            "double clicking to open it in the file dialog and that it's "
+            "named correctly."
+        )
+
+    return date, animal_ID, roi
+
+
+def get_session_info(folder):
+    """
+    Gets the date, animal ID, and ROI info from the name of the selected
+    folder.
+    """
+
+    date = folder.split("--")[0]
+    animal_ID = folder.split("--")[1].split("_")[0]
+    roi = folder.split("_")[1]
+
+    return date, animal_ID, roi
+
+
+def read_txt_file(self, path):
+    """
+    Reads a single txt file from one trial into a dataframe.
+    """
+    txt_df = pd.read_csv(Path(path), sep="\t", index_col=0)
+
+    return txt_df
