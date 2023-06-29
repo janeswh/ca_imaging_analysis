@@ -52,6 +52,8 @@ def prompt_dir():
 
     clicked = make_pick_folder_button()
     if clicked:
+        select_manual = False
+        st.session_state.manual_path = False
         st.session_state.dir_path = pop_folder_selector()
 
     select_manual = st.button("Enter folder path manually")
