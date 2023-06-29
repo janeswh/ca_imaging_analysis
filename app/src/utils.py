@@ -54,13 +54,16 @@ def check_uploaded_files(files):
 
 
 def save_to_excel(
-    dir_path, sheetname, xlsx_fname, df, animal_id=None, add_label=False
+    dir_path,
+    sheetname,
+    xlsx_fname,
+    df,
+    animal_id=None,
+    add_label=False,
 ):
     """
     Saves measurement dfs as one sheet per measurement type into Excel file
     """
-
-    # xlsx_fname = f"compiled_dataset_analysis.xlsx"
     xlsx_path = Path(dir_path, xlsx_fname)
 
     if os.path.isfile(xlsx_path):  # if it does, write to existing file
@@ -195,10 +198,19 @@ def get_session_info(folder):
     return date, animal_ID, roi
 
 
-def read_txt_file(self, path):
+def read_txt_file(path):
     """
     Reads a single txt file from one trial into a dataframe.
     """
     txt_df = pd.read_csv(Path(path), sep="\t", index_col=0)
 
     return txt_df
+
+
+def save_to_csv(fname, path, df):
+    """
+    Saves a df to csv
+    """
+    csv_path = Path(path, fname)
+
+    df.to_csv(csv_path, index=False)
