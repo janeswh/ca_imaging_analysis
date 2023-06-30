@@ -19,6 +19,25 @@ from src.experiment import ExperimentFile
 import pdb
 
 
+def load_avg_means(file):
+    """
+    Loads the average means from an experiment into a dict, with sheet
+    names/sample # as keys, df as values
+
+    """
+    avg_means_dict = pd.read_excel(file, sheet_name=None)
+    st.info(
+        f"Avg means loaded successfully for {len(avg_means_dict)} " "samples."
+    )
+
+    # the below tries to get list of odor #s from column names
+    first_sample_df = next(iter(avg_means_dict.values()))
+
+    odor_list = [x for x in first_sample_df.columns.values if type(x) == int]
+
+    return avg_means_dict, odor_list
+
+
 def make_empty_containers(dataset_type):
     """
     Makes empty dicts and lists to hold sig_exp and odor data

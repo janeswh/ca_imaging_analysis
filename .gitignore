@@ -6,3 +6,8 @@ roi_analysis_img.tar
 
 # Test output .xlsx files
 *.xlsx
+
+# Virtual Env
+venv/
+
+*.pyc

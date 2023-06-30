@@ -7,6 +7,52 @@ pio.templates.default = "plotly_white"
 import pdb
 
 
+def get_odor_colors():
+    """
+    Creates fixed colors for 8 odors
+    """
+    odor_colors = {
+        "Odor 1": "#1A6FF2",
+        "Odor 2": "#444655",
+        "Odor 3": "#A9AABC",
+        "Odor 4": "#E41E4F",
+        "Odor 5": "#FF6580",
+        "Odor 6": "#29E990",
+        "Odor 7": "#AA53C1",
+        "Odor 8": "#00C7FF",
+    }
+
+    return odor_colors
+
+
+def plot_avg_amps(avg_means_df, odors_to_plot):
+    """
+    Plots the mean amptlidue of every odor for one sample
+    """
+    odor_colors = get_odor_colors()
+    fig = go.Figure()
+
+    for odor in odors_to_plot:
+        fig.add_trace(
+            go.Scatter(
+                x=avg_means_df["Frame"],
+                y=avg_means_df[odor],
+                line=dict(color=odor_colors[f"Odor {odor}"]),
+                name=odor,
+            )
+        )
+
+    fig.update_xaxes(
+        title_text="Frame",
+    )
+    fig.update_yaxes(
+        title_text="Mean amplitude",
+    )
+    fig.update_layout(legend_title_text="Odor Number<br />")
+
+    return fig
+
+
 def set_color_scales(dataset_type):
     """
     Creates fixed color scales used for plotting
