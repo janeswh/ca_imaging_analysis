@@ -7,6 +7,7 @@
 
 - Added compilation of measurements for one acute/chronic dataset into .xlsx file, automatically generated after loading data
 - Set negative AUC values to 0 for all odors including blank
+- Made file/data `st.session_state` variables unique to each `st.Page`
 - Upgraded to Python 3.11
 
 ### Added
@@ -36,4 +37,4 @@
 
 ### Fixed
 
-- Fixed plot_list and load_data st.session_state variables to be unique across app pages
+- Fixed `plot_list` and `load_data` `st.session_state` variables to be unique across app pages
