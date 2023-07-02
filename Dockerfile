@@ -29,7 +29,7 @@
 
 # app/Dockerfile
 
-FROM python:3.9-slim AS build
+FROM python:3.11-slim AS build
 
 # virtualenv
 ENV VIRTUAL_ENV=/opt/venv
@@ -58,7 +58,7 @@ RUN pip3 install -r requirements.txt \
 # email = \"\"\n\
 # " > /root/.streamlit/credentials.toml'   
 
-FROM python:3.9-slim AS runtime
+FROM python:3.11-slim AS runtime
 
 # setup user and group ids
 ARG USER_ID=1000
@@ -98,6 +98,4 @@ EXPOSE 8501
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 ENTRYPOINT ["streamlit", "run", "Home.py", "--server.fileWatcherType=none", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
 # ENTRYPOINT ["streamlit", "run", "ROI_analysis_web.py", "--server.port=8501", "--server.headless=true"]
-
-
 
