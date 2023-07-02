@@ -39,14 +39,22 @@ class RawFolder(object):
         Reads .txt file from Python to get solenoid order
         """
 
-        solenoid_filename = (
-            self.date
-            + "_"
-            + self.animal_id
-            + "_"
-            + self.ROI_id
-            + "_solenoid_info.txt"
-        )
+        # solenoid_filename = (
+        #     self.date
+        #     + "_"
+        #     + self.animal_id
+        #     + "_"
+        #     + self.ROI_id
+        #     + "_solenoid_info.txt"
+        # )
+
+        # solenoid_filename = (
+        #     f"{self.date}_{self.animal_id}_{self.ROI_id}_"
+        #     f"soenoid_info.txt"
+        # )
+
+        solenoid_filename = [self.date, self.animal_id, self.ROI_id].join("_")
+        solenoid_filename += "_solenoid_info.txt"
 
         solenoid_path = Path(self.session_path, solenoid_filename)
 
@@ -111,6 +119,15 @@ class RawFolder(object):
             ),
         )
 
+    @property
+    def _trial_name(self):
+        return f"{self.date}--{self.animal_id}_{self.ROI_id}"
+    
+    # TODO: consider doing this for csv and txt
+    @property
+    def _csv_filename(self):
+        return f"{self._trial_name}_solenoid_info.csv"
+
     def rename_txt(self):
         """
         Checks to see whether the data .txt files are named correctly, if not,
@@ -128,11 +145,13 @@ class RawFolder(object):
         file_names = sorted(data_files, key=lambda x: x[-7:-4])
 
         # checks whether files have been renamed
-        first_trial_name = f"{self.date}--{self.animal_id}_{self.ROI_id}"
+        first_trial_name = self._trial_name
+        # first_trial_name = f"{self.date}--{self.animal_id}_{self.ROI_id}"
 
         # check whether the first trial txt exists
         if os.path.isfile(
-            Path(self.session_path, f"{first_trial_name}_000.txt")
+            # Path(self.session_path, f"{first_trial_name}_000.txt")
+            Path(self.session_path, f"{self._trial_name}_000.txt")
         ):
             st.info(
                 ".txt files are already in the correct format; proceeding with analysis."
@@ -158,6 +177,7 @@ class RawFolder(object):
         """
         Creates list of paths for all text files, excluding solenoid info
         """
+        # TODO: return []
         self.txt_paths = [
             str(path)
             for path in Path(self.session_path).rglob("*.txt")
@@ -168,7 +188,11 @@ class RawFolder(object):
         """
         Iterates through txt files, opens them as csv and converts each file to
         dataframe, then collects everything inside a dict.
+
+        TODO: pass in txt_paths (or whatever the output of get_txt_file_paths)
         """
+        # TODO: if not txt_paths: raise Exception("no paths")
+
         # sorts the paths according to 000-001, etc
         paths = sorted(self.txt_paths, key=lambda x: int(x[-7:-4]))
 
@@ -193,6 +217,7 @@ class RawFolder(object):
 
             all_data_df = pd.concat([all_data_df, df], axis=0)
 
+        # return all_data_df
         self.organize_all_data_df(all_data_df)
 
     def organize_all_data_df(self, all_data_df):
@@ -240,6 +265,7 @@ class RawFolder(object):
         save_to_excel(
             self.session_path, sheet_name, analysis_fname, analysis_df
         )
+        # TODO: return description and don't pass in bar
 
         bar.set_description(
             f"Analyzing {sample_type} {n_count+1}", refresh=True
@@ -291,8 +317,13 @@ class RawFolder(object):
             baseline_subtracted,
         ) = self.do_initial_calcs(avg_means)
 
+        # Determines whether response is significant by checking whether
+        # blank_sub_deltaF is greater than baseline_stdx3.
+        significance_bool = blank_sub_deltaF > baseline_stdx3
+        self.sig_odors = significance_bool[significance_bool].index.values 
+
         significance_report = self.get_sig_responses(
-            blank_sub_deltaF, baseline_stdx3, blank_sub_deltaF_F_perc
+            significance_bool, blank_sub_deltaF_F_perc
         )
 
         auc, auc_blank = self.calc_auc(avg_means, baseline)
@@ -328,10 +359,11 @@ class RawFolder(object):
             latency,
             time_to_peak,
         )
+        # TODO: make these args fixed? avg_means=avg_means, baseline=baseline..
 
         return response_analyses_df
 
-    def do_initial_calcs(self, avg_means):
+    def do_initial_calcs(self, avg_means):  # TODO: change verb to "calculate_initial_nums" or something that suggests these calcs are being returned
         baseline = avg_means[:52].mean()
 
         # Calculates peak using max value from frames #53-300
@@ -347,6 +379,8 @@ class RawFolder(object):
         deltaF_blank = deltaF[avg_means.columns[-1]]
 
         # Calculates blank-subtracted deltaF
+        # TODO: comment is very obvious - better to explain why _blank is being subtracted from deltaF
+        #   or explain what this value will be used for
         blank_sub_deltaF = deltaF - deltaF_blank
 
         # Calculates blanksub_deltaF/F(%)
@@ -377,15 +411,18 @@ class RawFolder(object):
         return auc, auc_blank
 
     def get_sig_responses(
-        self, blank_sub_deltaF, baseline_stdx3, blank_sub_deltaF_F_perc
+        self, significance_bool, blank_sub_deltaF_F_perc
     ):
-        # Determines whether response is significant by checking whether
-        # blank_sub_deltaF is greater than baseline_stdx3.
+        """
+        :param List[bool] significance_bool:
+        :param float blank_sub_deltaF_F_perc:
+        :return rtype_here:
+        """
 
-        significance_bool = blank_sub_deltaF > baseline_stdx3
-
-        # gets odor #s with significant responses
-        self.sig_odors = significance_bool[significance_bool].index.values
+        # TODO 5: since we are using self.sig_odors elsewhere, it would be better
+        #  to set the value outside of this method -- also bc the values that
+        #  significance_bool is dependent on are being passed into this method.
+        #  it is easy to separate this. (next 4 lines move out)
 
         # reports False if odor is not significant, otherwise
         # reports blanksub_deltaF/F(%)
@@ -490,6 +527,8 @@ class RawFolder(object):
             [f"Odor {x}" for x in range(1, len(avg_means.columns) + 1)]
         ).set_axis(range(1, len(avg_means.columns) + 1))
 
+        # TODO: put pd.Series values into their own variables for pretty
+        # pretty_var = pd.Series([blah])
         series_list = [
             odor_labels,
             baseline,
@@ -529,15 +568,26 @@ class RawFolder(object):
         """
         Saves the solenoid info (odor # by trial) as csv.
         """
+        # fname = f"{self._trial_name}_solenoid_info.csv"
         fname = f"{self.date}_{self.animal_id}_{self.ROI_id}_solenoid_info.csv"
         save_to_csv(fname, self.session_path, self.soelnoid_df)
+
 
 
 class ExperimentFile(object):
     def __init__(self, file, df_list, dataset_type):
         self.file = file
-        self.sample_type = None
         self.dataset_type = dataset_type
+
+        # TODO: 
+        # it's cleaner/more pythonic to use split whenever u can
+        # also more pythonic to assign variables by unpacking (see _, _ = file_parts)
+        # also more pythonic to use join whenever u can
+
+        # file_parts = file.name.split("_")[0:2]  # this is a list
+        # self.date, self.animal_id, self.roi = file_parts
+        # self.exp_name = file_parts.join("_")
+
         self.exp_name = (
             file.name.split("_")[0]
             + "_"
@@ -551,13 +601,17 @@ class ExperimentFile(object):
         if self.dataset_type == "chronic":
             self.date = file.name.split("_")[0]
 
+        self.sample_type = None
         self.data_dict = None
         self.tuple_dict = None
         self.mega_df = None
         self.sig_data_df = None
-        self.sig_odors = None
+        self.sig_odors = None  # TODO: this can be initialized to []
 
         self.df_list = df_list
+    
+        # TODO: ponder putting in an initialize method OR group the Nones and 
+        # group the ones being assigned values
 
     def import_excel(self):
         """
@@ -572,6 +626,14 @@ class ExperimentFile(object):
             na_values="FALSE",
             dtype="object",
         )
+
+    def shared_method(self):
+        do stuff
+        
+        if chronic:
+            do stuff
+        elif acute:
+            do other stuff
 
     def sort_data(self):
         """
@@ -623,7 +685,7 @@ class ExperimentFile(object):
         Makes the dfs used for plotting measusrements
         """
         self.sig_data_df = pd.DataFrame()
-        self.sig_odors = []
+        self.sig_odors = []  # TODO: can delete this line if u take suggestion
 
         # drop non-significant colums from each df using NaN values
         for data_df in self.data_dict.values():
@@ -647,3 +709,5 @@ class ExperimentFile(object):
             else:
                 df_sig_odors = data_df.columns.values.tolist()
                 self.sig_odors.append(df_sig_odors)
+
+        # TODO: return self.sig_odors, self.sig_data_df so processing can use
