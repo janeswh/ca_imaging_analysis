@@ -122,7 +122,7 @@ class RawFolder(object):
     @property
     def _trial_name(self):
         return f"{self.date}--{self.animal_id}_{self.ROI_id}"
-    
+
     # TODO: consider doing this for csv and txt
     @property
     def _csv_filename(self):
@@ -320,7 +320,7 @@ class RawFolder(object):
         # Determines whether response is significant by checking whether
         # blank_sub_deltaF is greater than baseline_stdx3.
         significance_bool = blank_sub_deltaF > baseline_stdx3
-        self.sig_odors = significance_bool[significance_bool].index.values 
+        self.sig_odors = significance_bool[significance_bool].index.values
 
         significance_report = self.get_sig_responses(
             significance_bool, blank_sub_deltaF_F_perc
@@ -363,7 +363,9 @@ class RawFolder(object):
 
         return response_analyses_df
 
-    def do_initial_calcs(self, avg_means):  # TODO: change verb to "calculate_initial_nums" or something that suggests these calcs are being returned
+    def do_initial_calcs(
+        self, avg_means
+    ):  # TODO: change verb to "calculate_initial_nums" or something that suggests these calcs are being returned
         baseline = avg_means[:52].mean()
 
         # Calculates peak using max value from frames #53-300
@@ -410,9 +412,7 @@ class RawFolder(object):
 
         return auc, auc_blank
 
-    def get_sig_responses(
-        self, significance_bool, blank_sub_deltaF_F_perc
-    ):
+    def get_sig_responses(self, significance_bool, blank_sub_deltaF_F_perc):
         """
         :param List[bool] significance_bool:
         :param float blank_sub_deltaF_F_perc:
@@ -573,13 +573,12 @@ class RawFolder(object):
         save_to_csv(fname, self.session_path, self.soelnoid_df)
 
 
-
 class ExperimentFile(object):
     def __init__(self, file, df_list, dataset_type):
         self.file = file
         self.dataset_type = dataset_type
 
-        # TODO: 
+        # TODO:
         # it's cleaner/more pythonic to use split whenever u can
         # also more pythonic to assign variables by unpacking (see _, _ = file_parts)
         # also more pythonic to use join whenever u can
@@ -609,8 +608,8 @@ class ExperimentFile(object):
         self.sig_odors = None  # TODO: this can be initialized to []
 
         self.df_list = df_list
-    
-        # TODO: ponder putting in an initialize method OR group the Nones and 
+
+        # TODO: ponder putting in an initialize method OR group the Nones and
         # group the ones being assigned values
 
     def import_excel(self):
@@ -627,13 +626,13 @@ class ExperimentFile(object):
             dtype="object",
         )
 
-    def shared_method(self):
-        do stuff
-        
-        if chronic:
-            do stuff
-        elif acute:
-            do other stuff
+    # def shared_method(self):
+    #     do stuff
+
+    #     if chronic:
+    #         do stuff
+    #     elif acute:
+    #         do other stuff
 
     def sort_data(self):
         """
