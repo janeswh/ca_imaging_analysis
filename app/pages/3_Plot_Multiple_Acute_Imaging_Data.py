@@ -143,7 +143,7 @@ def process_dataset():
     st.info(
         f"Response data loaded successfully for "
         f"{len(st.session_state.acute_files)} experiments. Summary .xlsx"
-        " file saved to the selected dictory as "
+        " file saved to the selected directory as "
         "compiled_dataset_analysis.xlsx"
     )
 
