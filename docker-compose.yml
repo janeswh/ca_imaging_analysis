@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  streamlit:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    ports:
+      - '8501:8501'
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - '/home/jhuang/Desktop/roi_analysis_app_test/cleanedup_files:/app_dir/local_files'
+    environment:
+      DISPLAY: $DISPLAY
+    network_mode: "host"
