@@ -53,7 +53,8 @@ class RawFolder(object):
         #     f"soenoid_info.txt"
         # )
 
-        solenoid_filename = [self.date, self.animal_id, self.ROI_id].join("_")
+        solenoid_filename = [self.date, self.animal_id, self.ROI_id]
+        solenoid_filename = "_".join(solenoid_filename)
         solenoid_filename += "_solenoid_info.txt"
 
         solenoid_path = Path(self.session_path, solenoid_filename)

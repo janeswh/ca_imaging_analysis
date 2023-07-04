@@ -58,4 +58,4 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/ca_imaging_analysis:latest
           # tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/arm64/v8, linux/amd64
+          platforms: linux/arm64, linux/amd64
