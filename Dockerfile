@@ -7,8 +7,19 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt ./
-RUN pip3 install -r requirements.txt \
-    && python -m pip install openpyxl 
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    tk \
+    build-essential \
+    make \
+    gcc \
+    && pip3 install -r requirements.txt \
+    && python -m pip install openpyxl \
+    && apt-get remove -y --purge make gcc build-essential \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* 
+
+# RUN pip3 install -r requirements.txt \
+#     && python -m pip install openpyxl 
 
 ARG TARGETPLATFORM
 
@@ -29,8 +40,8 @@ RUN groupadd --gid $GROUP_ID user && \
 # copy from build image
 COPY --chown=user:user --from=build /opt/venv /opt/venv
 
-RUN apt-get update && apt-get install --no-install-recommends -y tk \
-    && rm -rf /var/lib/apt/lists/* 
+# RUN apt-get update && apt-get install --no-install-recommends -y tk \
+
 
 # set working directory
 WORKDIR /app_dir
