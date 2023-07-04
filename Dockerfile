@@ -18,12 +18,13 @@ RUN apt-get update \
         gcc \
         dpkg-dev \ 
         libjpeg-dev \ 
-    && pip install -r requirements.txt \
-    && pip install --no-cache-dir . \
+    && pip3 install -r requirements.txt \
+    && pip3 install --no-cache-dir . \
+    %% python -m pip install openpyxl \
     && apt-get remove -y --purge make gcc build-essential \
     && apt-get auto-remove -y \
     && rm -rf /var/lib/apt/lists/* \
-    # && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
+    && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
 
 ARG TARGETPLATFORM
 
