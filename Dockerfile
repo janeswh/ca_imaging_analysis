@@ -11,30 +11,19 @@ COPY requirements.txt ./
 #     && pip3 install -r requirements.txt \
 #     && python -m pip install openpyxl 
 
-# RUN apt-get update \ 
-#     && apt-get install -y \
-#         build-essential \
-#         make \
-#         gcc \
-#         dpkg-dev \ 
-#         libjpeg-dev \ 
-#     && pip install -r requirements.txt \
-#     && pip install --no-cache-dir . \
-#     && apt-get remove -y --purge make gcc build-essential \
-#     && apt-get auto-remove -y \
-#     && rm -rf /var/lib/apt/lists/* \
-#     && find /usr/local/lib/python3.7 -name "*.pyc" -type f -delete
-
 RUN apt-get update \ 
-    && apt-get install build-essential make gcc -y \
-    && apt-get install dpkg-dev -y \ 
-    && apt-get install libjpeg-dev -y \ 
+    && apt-get install -y \
+        build-essential \
+        make \
+        gcc \
+        dpkg-dev \ 
+        libjpeg-dev \ 
     && pip install -r requirements.txt \
     && pip install --no-cache-dir . \
     && apt-get remove -y --purge make gcc build-essential \
     && apt-get auto-remove -y \
     && rm -rf /var/lib/apt/lists/* \
-    && find /usr/local/lib/python3.7 -name "*.pyc" -type f -delete
+    && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
 
 ARG TARGETPLATFORM
 
