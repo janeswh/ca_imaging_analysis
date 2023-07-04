@@ -6,7 +6,8 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN pip3 install --upgrade pip
+# RUN pip3 install --upgrade pip
+
 
 COPY requirements.txt ./
 RUN pip3 install -r requirements.txt \
@@ -30,6 +31,8 @@ RUN groupadd --gid $GROUP_ID user && \
 
 # copy from build image
 COPY --chown=user:user --from=build /opt/venv /opt/venv
+
+RUN pip3 install --nocache-dir numpy
 
 RUN apt-get update && apt-get install --no-install-recommends -y tk \
     && rm -rf /var/lib/apt/lists/* 
