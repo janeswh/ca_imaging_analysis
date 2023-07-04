@@ -7,15 +7,12 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # RUN pip3 install --upgrade pip
-RUN apt update && apt install -y git gcc build-essential python3-dev libgeos-dev \
-    && python3 -m pip install --upgrade pip setuptools wheel
-
-# RUN python3 -m pip install --no-cache-dir --compile -r requirements.txt
+RUN pip3 install numpy==1.25.0
 
 COPY requirements.txt ./
-# RUN pip3 install -r requirements.txt \
-RUN python3 -m pip install --no-cache-dir --compile -r requirements.txt \
-    && python -m pip install openpyxl 
+RUN pip3 install -r requirements.txt \
+    # && python -m pip install openpyxl 
+    && pip3 install openpyxl
 
 ARG TARGETPLATFORM
 
