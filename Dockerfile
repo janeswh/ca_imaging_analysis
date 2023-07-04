@@ -7,8 +7,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt ./
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    tk \
+RUN apt-get update && apt-get install -y \
     build-essential \
     make \
     gcc \
@@ -23,7 +22,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 ARG TARGETPLATFORM
 
-FROM python:3.11-slim AS runtime
+FROM python:3.11 AS runtime
 
 # setup user and group ids
 ARG USER_ID=1000
@@ -40,7 +39,7 @@ RUN groupadd --gid $GROUP_ID user && \
 # copy from build image
 COPY --chown=user:user --from=build /opt/venv /opt/venv
 
-# RUN apt-get update && apt-get install --no-install-recommends -y tk \
+RUN apt-get update && apt-get install --no-install-recommends -y tk \
 
 
 # set working directory
