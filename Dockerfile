@@ -14,7 +14,7 @@ RUN apt update && apt install -y git gcc build-essential python3-dev libgeos-dev
 
 COPY requirements.txt ./
 # RUN pip3 install -r requirements.txt \
-RUN python3 -m pip install --no-cache-dir --compile -r requirements.txt
+RUN python3 -m pip install --no-cache-dir --compile -r requirements.txt \
     && python -m pip install openpyxl 
 
 ARG TARGETPLATFORM
