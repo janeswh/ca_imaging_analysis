@@ -1,5 +1,5 @@
 # FROM python:3.11-slim AS build
-FROM --platform=$BUILDPLATFORM python:3.11-slim AS build
+FROM --platform=$BUILDPLATFORM python:3.11 AS build
 # ARG TARGETPLATFORM
 
 ENV VIRTUAL_ENV=/opt/venv
