@@ -7,7 +7,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt ./
-RUN RUN apt-get update && apt-get install -y gcc \
+RUN apt-get update && apt-get install -y gcc \
     && pip3 install -r requirements.txt \
     && python -m pip install openpyxl 
 
