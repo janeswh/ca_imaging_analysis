@@ -18,6 +18,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN apt update && apt install -y git gcc build-essential python3-dev libgeos-dev
 
 RUN python3 -m pip install --upgrade pip setuptools wheel
+RUN python -m pip install numpy
 
 COPY requirements.txt ./
 RUN python3 -m pip install --no-cache-dir --compile -r requirements.txt
