@@ -1,5 +1,5 @@
 # FROM python:3.11-slim AS build
-FROM --platform=$BUILDPLATFORM python:3.11 AS build
+FROM --platform=$BUILDPLATFORM python:3.11-slim AS build
 # ARG TARGETPLATFORM
 
 ENV VIRTUAL_ENV=/opt/venv
@@ -7,12 +7,13 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY requirements.txt ./
-RUN pip3 install -r requirements.txt \
+RUN RUN apt-get update && apt-get install -y gcc \
+    && pip3 install -r requirements.txt \
     && python -m pip install openpyxl 
 
 ARG TARGETPLATFORM
 
-FROM python:3.11 AS runtime
+FROM python:3.11-slim AS runtime
 
 # setup user and group ids
 ARG USER_ID=1000
