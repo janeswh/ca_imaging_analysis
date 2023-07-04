@@ -6,25 +6,11 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY requirements.txt ./
-# RUN apt-get update && apt-get install -y gcc \
-#     && pip3 install -r requirements.txt \
-#     && python -m pip install openpyxl 
+RUN pip3 install numpy
 
-RUN apt-get update \ 
-    && apt-get install -y \
-        build-essential \
-        make \
-        gcc \
-        dpkg-dev \ 
-        libjpeg-dev \ 
-    && pip3 install -r requirements.txt \
-    && pip3 install --no-cache-dir . \
-    %% python -m pip install openpyxl \
-    && apt-get remove -y --purge make gcc build-essential \
-    && apt-get auto-remove -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
+COPY requirements.txt ./
+RUN pip3 install -r requirements.txt \
+    && python -m pip install openpyxl 
 
 ARG TARGETPLATFORM
 
