@@ -23,7 +23,7 @@ RUN apt-get update \
     && apt-get remove -y --purge make gcc build-essential \
     && apt-get auto-remove -y \
     && rm -rf /var/lib/apt/lists/* \
-    && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
+    # && find /usr/local/lib/python3.11 -name "*.pyc" -type f -delete
 
 ARG TARGETPLATFORM
 
