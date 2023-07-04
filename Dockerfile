@@ -6,7 +6,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN pip3 install numpy
+RUN pip3 install --upgrade pip
 
 COPY requirements.txt ./
 RUN pip3 install -r requirements.txt \
