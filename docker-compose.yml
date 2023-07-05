@@ -9,7 +9,8 @@ services:
       - '8501:8501'
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - '/home/jhuang/Desktop/roi_analysis_app_test/cleanedup_files:/app_dir/local_files'
+      # - '/home/jhuang/Desktop/roi_analysis_app_test/cleanedup_files:/app_dir/local_files'
+      - '../../:/app_dir/local_files'
     environment:
       DISPLAY: $DISPLAY
     network_mode: "host"
