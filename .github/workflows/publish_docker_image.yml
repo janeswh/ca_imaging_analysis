@@ -8,10 +8,10 @@ on:
 
 env:   
   # Use docker.io for Docker Hub if empty
-  REGISTRY: docker.io  
+  # REGISTRY: docker.io  
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-  # REGISTRY_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #IMAGE_NAME: ${{ github.repository }}
+  REGISTRY_IMAGE: janeswh/ca_imaging_analysis
 
 jobs:
   #push_to_registry:
@@ -56,7 +56,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
