@@ -7,7 +7,7 @@ on:
   #   branches: [ "test", "main" ]
 
 env: 
-  REGISTRY_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  REGISTRY_IMAGE: janeswh/ca_imaging_analysis
   # Use docker.io for Docker Hub if empty
   # REGISTRY: docker.io
   
