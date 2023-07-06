@@ -27,7 +27,7 @@ RUN groupadd --gid $GROUP_ID user && \
           chown -R user:user /usr/src/app_dir
 
 # copy from build image
-# COPY --chown=user:user --from=build /opt/venv /opt/venv
+COPY --chown=user:user --from=build /opt/venv /opt/venv
 
 RUN apt-get update && apt-get install --no-install-recommends -y tk \
     && rm -rf /var/lib/apt/lists/* 
