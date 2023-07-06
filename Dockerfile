@@ -12,7 +12,7 @@ RUN pip3 install -r requirements.txt
 # ARG TARGETPLATFORM
 
 # FROM python:3.11-slim-bookworm AS runtime
-FROM build AS runtime
+# FROM build AS runtime
 
 # setup user and group ids
 ARG USER_ID=1000
@@ -27,7 +27,7 @@ RUN groupadd --gid $GROUP_ID user && \
           chown -R user:user /usr/src/app_dir
 
 # copy from build image
-COPY --chown=user:user --from=build /opt/venv /opt/venv
+# COPY --chown=user:user --from=build /opt/venv /opt/venv
 
 RUN apt-get update && apt-get install --no-install-recommends -y tk \
     && rm -rf /var/lib/apt/lists/* 
