@@ -11,7 +11,7 @@ RUN pip3 install -r requirements.txt
 
 # ARG TARGETPLATFORM
 
-FROM --platform=$TARGETPLATFORM python:3.11-slim-bookworm AS runtime
+FROM python:3.11-slim-bookworm AS runtime
 # FROM build AS runtime
 
 # setup user and group ids
