@@ -20,9 +20,9 @@
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac4.png)
 
-3. Download the web app [here](https://pitt-my.sharepoint.com/personal/cheetham_pitt_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab%2Froi%5Fanalysis%5Fapp%5Ftest%2Ezip&parent=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab) and unzip the file contents. There will be two folders: the cleanedup_files are example test data, and the roi_app_x.y.z folder contains the actual web app.
+3. Download the web app [here](https://pitt-my.sharepoint.com/personal/cheetham_pitt_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab%2Froi%5Fanalysis%5Fapp%5Ftest%2Ezip&parent=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab) and unzip the file contents. There will be two folders: the cleanedup_files are example test data, and the roi_app folder contains the actual web app.
 
-    1. Move the roi_app_x.y.z folder into the same folder that contains all the experiments that you want to analyze. The app will be able to access anything that’s in the same directory as itself, so you can place the roi_app folder in as high of a directory as you want. Example shown below:
+    1. Move the roi_app folder into the same folder that contains all the experiments that you want to analyze. The app will be able to access anything that’s in the same directory as itself, so you can place the roi_app folder in as high of a directory as you want. Example shown below:
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac5.png)
 
@@ -36,7 +36,7 @@
 
 1. Make sure you have both Docker and XQuartz open and running. Docker might take awhile to start depending on your computer.
 
-2. Go to the roi_app_x.y.z folder.
+2. Go to the roi_app folder.
     1. Right click on the run_docker_mac.sh file, click Get Info, then Under “Open with:”, click on “Other”.
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac7.png)
@@ -69,7 +69,7 @@
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac13.png)
 
-    2. Go back to Terminal, and in the open window, type `cd` and then paste or type the file path, example below. Press Enter. Note that your path will be different depending on where you’ve placed the roi_app_x.x.x folder.
+    2. Go back to Terminal, and in the open window, type `cd` and then paste or type the file path, example below. Press Enter. Note that your path will be different depending on where you’ve placed the roi_app folder.
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac14.png)
 
@@ -101,7 +101,7 @@
 
 1. Close the browser window where the app is running, and close the Terminal window.
 2. Go to Docker Desktop, and in the left sidebar, click on Containers.
-3. You should see under “Image” something like roi_analysis_0.1.0 - click on the trash can icon to delete the container.
+3. You should see under “Image” something like ca_imaging_analysis:latest - click on the trash can icon to delete the container.
 
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/mac/mac20.png)
 

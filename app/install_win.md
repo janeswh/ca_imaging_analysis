@@ -14,9 +14,9 @@
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/win/win2.png)
 
-4. Download the web app [here](https://pitt-my.sharepoint.com/personal/cheetham_pitt_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab%2Froi%5Fanalysis%5Fapp%5Ftest%2Ezip&parent=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab) and unzip the file contents. There will be two folders: the cleanedup_files are example test data, and the roi_app_x.y.z folder contains the actual web app.
+4. Download the web app [here](https://pitt-my.sharepoint.com/personal/cheetham_pitt_edu/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab%2Froi%5Fanalysis%5Fapp%5Ftest%2Ezip&parent=%2Fpersonal%2Fcheetham%5Fpitt%5Fedu%2FDocuments%2FCheetham%20lab) and unzip the file contents. There will be two folders: the cleanedup_files are example test data, and the roi_app folder contains the actual web app.
 
-    1. Move the roi_app_x.y.z folder into the same folder that contains all the experiments that you want to analyze. The app will be able to access anything that’s in the same directory as itself, so you can place the roi_app folder in as high of a directory as you want. Example shown below:
+    1. Move the roi_app folder into the same folder that contains all the experiments that you want to analyze. The app will be able to access anything that’s in the same directory as itself, so you can place the roi_app folder in as high of a directory as you want. Example shown below:
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/win/win3.png)
 
@@ -32,7 +32,7 @@
 
 2. The first time you run everything, you'll need to give your PC permission to run the script.
 
-    1. Go to the roi_app_x.y.z folder.
+    1. Go to the roi_app folder.
 
     2. Right click on run_docker_win.ps1. If you're using Windows 11, click "Copy as path". Otherwise, click "Properties" and copy the full path of the file next to "Location".
 
@@ -40,7 +40,7 @@
 
     3. Open up Start Menu, type `powershell` in the search bar, and right click on Windows PowerShell > Run as Administrator, click yes.
 
-    4. In the terminal window, type `Unblock-File -Path`C:\Users\Bob\Documents\GCaMP6s\roi_app_0.1.0\run_docker_win.ps1, but replace the path with the actual path to the .ps1 file on your system. Make sure there are no quotes around the path name. Press Enter. See example below:
+    4. In the terminal window, type `Unblock-File -Path`C:\Users\Bob\Documents\GCaMP6s\roi_app\run_docker_win.ps1, but replace the path with the actual path to the .ps1 file on your system. Make sure there are no quotes around the path name. Press Enter. See example below:
 
     ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/win/win6.png)
 
@@ -68,7 +68,7 @@
 
 1. Close the browser window where the app is running, and close the Terminal window.
 2. Go to Docker Desktop, and in the left sidebar, click on Containers.
-3. You should see under “Image” something like roi_analysis_0.1.0 - click on the trash can icon to delete the container.
+3. You should see under “Image” something like ca_imaging_analysis:latest - click on the trash can icon to delete the container.
 
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/win/win10.png)
 

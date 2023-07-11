@@ -8,8 +8,6 @@ The ROI Analysis app imports .txt files containing raw fluorescence intensity da
 
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 * [VcXserv](https://sourceforge.net/projects/vcxsrv) (on Windows) or  [XQuartz](https://www.xquartz.org) (on Mac)
-* Docker image (contact author for access)
-* [Streamlit](https://docs.streamlit.io/library/get-started) if not using Docker and an Xserver
 
 ### Installation
 
@@ -21,8 +19,8 @@ For more detailed setup instructions, visit here:
 
 1. Install Docker Desktop.
 2. Install VcXserv or XQuartz depending on your OS, and configure to disable access control.
-3. Download the zip file containing the Docker image and unzip the contents.
-4. Place the roi_app_x.y.z folder in the same directory containing all the experiment folders that you wish to analyze. Make sure the experiment folder names and solenoid_info.txt file names are formatted as shown below:
+3. Download the zip file containing the Docker script and unzip the contents.
+4. Place the roi_app folder in the same directory containing all the experiment folders that you wish to analyze. Make sure the experiment folder names and solenoid_info.txt file names are formatted as shown below:
 
 ```
 .
@@ -46,10 +44,9 @@ For more detailed setup instructions, visit here:
                     │   └── 211119--834736-5-6_ROI1_010.txt
                     ├── 220118--957214-1-3_ROI1
                     ├── 220118--953068_2-1_ROI2
-                    └── roi_app_0.1.0/
-                        ├── roi_analysis_0.1.0.tar
+                    └── roi_app/
                         ├── run_docker_win.ps1
-                        └── readme_win.txt
+                        └── readme.txt
 ```
 
 ### Starting the app
