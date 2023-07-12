@@ -125,6 +125,11 @@ def run_analysis(
             data.get_txt_file_paths()
             data.iterate_txt_files()  # iterates over each txt file and extracts data
 
+            # TODO:
+            #  file_paths = data.get_txt_file_paths()
+            #  data_df = data.iterate_txt_files(file_paths)
+            #  data.organize_all_data_df(data_df)
+
             if drop_trial:
                 data.drop_trials()
 

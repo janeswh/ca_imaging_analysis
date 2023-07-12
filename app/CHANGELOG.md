@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2023-07-12
+
+### Fixed
+
+- Fixed Chronic Imaging plotting load file to display info that compiled .xlsx file has been generated
+
 ## [0.2.0] - 2023-06-30
 
 ### Changed

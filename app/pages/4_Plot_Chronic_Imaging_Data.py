@@ -157,7 +157,8 @@ def process_dataset():
     st.info(
         f"Response data loaded successfully for "
         f"{len(st.session_state.chronic_files)} experiments from "
-        f"animal ID {st.session_state.animal_id}."
+        f"animal ID {st.session_state.animal_id}. Summary .xlsx file saved to "
+        "the selected directory as compiled_dataset_analysis.xlsx."
     )
 
     st.session_state.sig_odors = check_sig_odors(
