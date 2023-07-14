@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2] - 2023-07-14
+
+### Fixed
+
+- Fixed Odor 2 in `compiled_dataset_analysis.xlsx` always being blank
+
+### Added
+
+- Added Baseline to `compiled_dataset_analysis.xlsx`
+
 ## [0.2.1] - 2023-07-12
 
 ### Fixed
