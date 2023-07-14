@@ -69,12 +69,13 @@ def make_empty_measurements_df():
     """
     Makes empty dfs to hold measurement values
     """
+    baseline_df = pd.DataFrame()
     blank_sub_df = pd.DataFrame()
     auc_df = pd.DataFrame()
     latency_df = pd.DataFrame()
     ttpeak_df = pd.DataFrame()
 
-    df_list = [blank_sub_df, auc_df, latency_df, ttpeak_df]
+    df_list = [baseline_df, blank_sub_df, auc_df, latency_df, ttpeak_df]
 
     return df_list
 
@@ -134,7 +135,7 @@ def import_all_excel_data(dataset_type, files):
     for file in load_bar:
         load_file(load_bar, file, df_list, dict_list, dataset_type)
 
-    return [dict_list, df_list]
+    return dict_list, df_list
 
 
 def sort_files_by_date(files):
@@ -200,6 +201,7 @@ def sort_measurements_df(
     animal_id=None,
 ):
     sheetname_list = [
+        "Baseline",
         "Blank-subtracted DeltaFF(%)",
         "Blank sub AUC",
         "Latency (s)",
@@ -216,7 +218,6 @@ def sort_measurements_df(
             df = df.reset_index().set_index(["Animal ID", "ROI", sample_type])
         df.sort_index(inplace=True)
         df = df.reindex(sorted(df.columns), axis=1)
-        df.drop(columns=[(measure, "Odor 2")], inplace=True)
 
         # Manually add back empty/non-sig odor columns to reduce confusion
         for odor in odors_list:
@@ -231,6 +232,7 @@ def sort_measurements_df(
         df = df[columns_list]  # Reorders Odor columns list
         sheetname = sheetname_list[df_ct]
         add_label = False
+
         if dataset_type == "chronic":
             add_label = True
 
@@ -269,37 +271,38 @@ def generate_plots(
             plot_groups, total_cols = get_acute_plot_params(all_roi_counts)
 
         for measure in measures_list:
-            if dataset_type == "chronic":
-                measure_fig = plot_chronic_odor_measure_fig(
-                    sig_odor_exps,
-                    data_dict,
-                    odor,
-                    measure,
-                    sorted_dates,
-                )
+            if measure != "Baseline":
+                if dataset_type == "chronic":
+                    measure_fig = plot_chronic_odor_measure_fig(
+                        sig_odor_exps,
+                        data_dict,
+                        odor,
+                        measure,
+                        sorted_dates,
+                    )
 
-                format_fig(
-                    measure_fig,
-                    measure,
-                    "chronic",
-                    interval,
-                    sorted_dates,
-                )
+                    format_fig(
+                        measure_fig,
+                        measure,
+                        "chronic",
+                        interval,
+                        sorted_dates,
+                    )
 
-            else:
-                measure_fig = plot_acute_odor_measure_fig(
-                    sig_odor_exps,
-                    data_dict,
-                    odor,
-                    measure,
-                    total_animals,
-                    plot_groups,
-                    total_cols,
-                )
+                else:
+                    measure_fig = plot_acute_odor_measure_fig(
+                        sig_odor_exps,
+                        data_dict,
+                        odor,
+                        measure,
+                        total_animals,
+                        plot_groups,
+                        total_cols,
+                    )
 
-                format_fig(measure_fig, measure, "acute")
+                    format_fig(measure_fig, measure, "acute")
 
-            plots_list[odor][measure] = measure_fig
+                plots_list[odor][measure] = measure_fig
 
         odor_bar.set_description(f"Plotting {odor}", refresh=True)
 
@@ -316,6 +319,8 @@ def generate_plots(
 
 
 def show_plots_sliders(plots_list, selected_odor, sig_odors, measures):
+    plot_measures = measures.copy()
+    plot_measures.remove("Baseline")
     if plots_list:
         selected_odor = st.selectbox(
             "Select odor number to display its corresponding plots:",
@@ -324,7 +329,7 @@ def show_plots_sliders(plots_list, selected_odor, sig_odors, measures):
 
         if selected_odor:
             display_plots(
-                measures,
+                plot_measures,
                 plots_list,
                 selected_odor,
             )

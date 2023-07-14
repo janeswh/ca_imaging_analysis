@@ -60,6 +60,7 @@ def initialize_states():
 
     # measures to plot
     st.session_state.measures = [
+        "Baseline",
         "Blank-subtracted DeltaF/F(%)",
         "Blank sub AUC",
         "Latency (s)",
@@ -114,6 +115,7 @@ def get_data():
     dict_list, df_list = import_all_excel_data(
         "acute", st.session_state.acute_files
     )
+
     sample_type = df_list[0].index.name
 
     sort_measurements_df(

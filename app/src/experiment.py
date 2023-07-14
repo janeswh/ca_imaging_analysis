@@ -648,11 +648,11 @@ class ExperimentFile(object):
         self.mega_df = pd.DataFrame(self.tuple_dict)
         self.sample_type = self.mega_df.columns[0][0].split(" ")[0]
 
-        # Replaces values with "" for non-sig responses
+        # Replaces values with "" for non-sig responses if not already NaN
         temp_mega_df = self.mega_df.T
-        temp_mega_df.loc[
-            temp_mega_df["Significant response?"] == False, "Blank sub AUC"
-        ] = ""
+        # temp_mega_df.loc[
+        #     temp_mega_df["Significant response?"] == False, "Blank sub AUC"
+        # ] = ""
         temp_mega_df.loc[
             temp_mega_df["Significant response?"] == False,
             "Blank-subtracted DeltaF/F(%)",
@@ -694,6 +694,7 @@ class ExperimentFile(object):
             # extracts measurements to plot
             data_df = data_df.loc[
                 [
+                    "Baseline",
                     "Blank-subtracted DeltaF/F(%)",
                     "Blank sub AUC",
                     "Latency (s)",

@@ -66,6 +66,7 @@ def initialize_states():
 
     # measures to plot
     st.session_state.measures = [
+        "Baseline",
         "Blank-subtracted DeltaF/F(%)",
         "Blank sub AUC",
         "Latency (s)",
