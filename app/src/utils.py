@@ -62,10 +62,10 @@ def save_to_excel(
     add_label=False,
 ):
     """
-    Saves measurement dfs as one sheet per measurement type into Excel file
+    Saves measurement dfs as one sheet per measurement type into Excel file.
+    By default, to_excel sets NaN values to "" using na_rep=""
     """
     xlsx_path = Path(dir_path, xlsx_fname)
-
     if os.path.isfile(xlsx_path):  # if it does, write to existing file
         # if sheet already exists, overwrite it
         with pd.ExcelWriter(
