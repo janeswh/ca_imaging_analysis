@@ -163,7 +163,12 @@ def main():
 
             # if solenoid file is present and correctly named, proceed
             if solenoid_file:
-                st.session_state.run_type = choose_run_type()
+                # Only choose run type if solenoid order file doesn't already
+                # exist (Beichen's old code)
+                if "solenoid_info.txt" in str(solenoid_file):
+                    st.session_state.run_type = choose_run_type()
+                elif "solenoid_order" in str(solenoid_file):
+                    st.session_state.run_type = "analysis"
 
                 if st.session_state.run_type == "analysis":
                     st.session_state.sample_type = choose_sample_type()

@@ -6,6 +6,10 @@
 
 - Added compatibility with new Odor Delivery App's output `solenoid_order.csv` files while maintaining compatibility with Beichen's legacy solenoid_info.txt files
 
+### Changed
+
+- Only provide the option to export solenoid info if the experiment folder contains `solenoid_info.txt`; otherwise it's unnecessary because `solenoid_order.csv` exists
+
 ## [0.2.2] - 2023-07-14
 
 ### Fixed
