@@ -36,50 +36,47 @@ class RawFolder(object):
 
     def get_solenoid_order(self):
         """
-        Reads .txt file from Python to get solenoid order
+        Reads .csv or .txt solenoid file to get solenoid order
         """
+        for filename in os.listdir(self.session_path):
+            solenoid_path = Path(self.session_path, filename)
 
-        # solenoid_filename = (
-        #     self.date
-        #     + "_"
-        #     + self.animal_id
-        #     + "_"
-        #     + self.ROI_id
-        #     + "_solenoid_info.txt"
-        # )
+            # This ignores temp files if csv file is open in Excel
+            if ".~lock" not in filename:
+                # For new delivery code with solenoid_order.csv file
+                if "solenoid_order" in filename:
+                    solenoid_data = pd.read_csv(solenoid_path)
+                    self.solenoid_df = solenoid_data
 
-        # solenoid_filename = (
-        #     f"{self.date}_{self.animal_id}_{self.ROI_id}_"
-        #     f"soenoid_info.txt"
-        # )
+                    temp_solenoid_df = solenoid_data.copy()
+                    temp_solenoid_df.sort_values(by=["Trial"], inplace=True)
+                    self.solenoid_order = temp_solenoid_df["Odor"].tolist()
 
-        solenoid_filename = [self.date, self.animal_id, self.ROI_id]
-        solenoid_filename = "_".join(solenoid_filename)
-        solenoid_filename += "_solenoid_info.txt"
+                # For Beichen's old code with solenoid_info.txt file
+                elif "solenoid_info.txt" in filename:
+                    with open(solenoid_path) as f:
+                        solenoid_data = f.readline()
+                        # removes non-numeric characters from solenoid order string
+                        solenoid_order_num = re.sub(
+                            "[^0-9]", "", solenoid_data
+                        )
+                        self.solenoid_order = [
+                            int(x) for x in solenoid_order_num
+                        ]
 
-        solenoid_path = Path(self.session_path, solenoid_filename)
+                        # makes df of solenoid info for export as csv
+                        solenoid_info_df = pd.DataFrame(
+                            {"Odor": self.solenoid_order}
+                        )
+                        solenoid_info_df["Trial"] = range(
+                            1, len(solenoid_info_df) + 1
+                        )
+                        solenoid_info_df.sort_values(by=["Odor"], inplace=True)
+                        self.solenoid_df = solenoid_info_df
 
-        # reads first line of solenoid order txt file
-        try:
-            with open(solenoid_path) as f:
-                solenoid_order_raw = f.readline()
-        except OSError:
-            st.error(
-                "Please make sure that the solenoid info txt file is "
-                "present in the directory and named correctly in the "
-                "format YYMMDD_123456-7-8_ROIX_solenoid_info.txt."
-            )
-
-        # removes non-numeric characters from solenoid order string
-        solenoid_order_num = re.sub("[^0-9]", "", solenoid_order_raw)
-        self.solenoid_order = [int(x) for x in solenoid_order_num]
-
-        # makes df of solenoid info for export as csv
-        solenoid_info_df = pd.DataFrame({"Odor": self.solenoid_order})
-        solenoid_info_df["Trial"] = range(1, len(solenoid_info_df) + 1)
-        solenoid_info_df.sort_values(by=["Odor"], inplace=True)
-
-        self.solenoid_df = solenoid_info_df
+        # # solenoid_filename = [self.date, self.animal_id, self.ROI_id]
+        # # solenoid_filename = "_".join(solenoid_filename)
+        # # solenoid_filename += "_solenoid_info.txt"
 
     def rename_correct_format(self, m, filename, _ext):
         """
@@ -571,7 +568,7 @@ class RawFolder(object):
         """
         # fname = f"{self._trial_name}_solenoid_info.csv"
         fname = f"{self.date}_{self.animal_id}_{self.ROI_id}_solenoid_info.csv"
-        save_to_csv(fname, self.session_path, self.soelnoid_df)
+        save_to_csv(fname, self.session_path, self.solenoid_df)
 
 
 class ExperimentFile(object):

@@ -10,29 +10,33 @@ from tkinter.filedialog import askdirectory
 import pdb
 
 
+def find_solenoid_file(date, animal_id, ROI_id, session_path):
+    """
+    Looks for the solenoid_info.txt or .csv file in the directory
+    """
+    for filename in os.listdir(session_path):
+        if "solenoid_order" in filename:
+            return filename
+
+
 def check_solenoid_file(date, animal_id, ROI_id, session_path):
     """
     Checks that the solenoid .txt file is named properly and present.
     """
-    solenoid_filename = (
-        date + "_" + animal_id + "_" + ROI_id + "_solenoid_info.txt"
-    )
+    solenoid_file = None
+    for filename in os.listdir(session_path):
+        # for new code with solenoid_order.csv file
+        if "solenoid_order" in filename or "solenoid_info.txt" in filename:
+            solenoid_file = Path(session_path, filename)
 
-    solenoid_path = Path(session_path, solenoid_filename)
-
-    # reads first line of solenoid order txt file
-    try:
-        with open(solenoid_path) as f:
-            solenoid_order_raw = f.readline()
-    except OSError:
+    if solenoid_file is None:
         st.error(
-            "Please make sure that the solenoid info txt file is "
-            "present in the directory and named correctly in the "
-            "format YYMMDD_123456-7-8_ROIX_solenoid_info.txt."
+            "Please make sure that the solenoid order file is present in the "
+            "directory, either as ...solenoid_info.txt or "
+            "...solenoid_order...csv."
         )
-        solenoid_order_raw = None
 
-    return solenoid_order_raw
+    return solenoid_file
 
 
 def check_uploaded_files(files):

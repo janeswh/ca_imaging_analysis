@@ -157,12 +157,12 @@ def main():
 
         if date:
             # if folder has been selected properly, proceed
-            solenoid_order_raw = check_solenoid_file(
+            solenoid_file = check_solenoid_file(
                 date, animal_id, roi, st.session_state.dir_path
             )
 
             # if solenoid file is present and correctly named, proceed
-            if solenoid_order_raw:
+            if solenoid_file:
                 st.session_state.run_type = choose_run_type()
 
                 if st.session_state.run_type == "analysis":

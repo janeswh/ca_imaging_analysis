@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2023-07-21
+
+### Added
+
+- Added compatibility with new Odor Delivery App's output `solenoid_order.csv` files while maintaining compatibility with Beichen's legacy solenoid_info.txt files
+
 ## [0.2.2] - 2023-07-14
 
 ### Fixed
