@@ -86,4 +86,4 @@ Creates interactive plots of odor response properties measured in the same anima
 
 ![](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/assets/analysis_screenclips/plot_chronic.gif)
 
-## [Changelog](https://github.com/janeswh/ca_imaging_analysis/blob/main/CHANGELOG.md)
+## [Changelog](https://github.com/janeswh/ca_imaging_analysis/blob/main/app/CHANGELOG.md)
