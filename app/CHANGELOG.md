@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2023-07-26
+
+### Fixed
+
+- Make Load and Analyze function ignore MacOS system files starting with `._`
+
 ## [0.3.0] - 2023-07-21
 
 ### Added

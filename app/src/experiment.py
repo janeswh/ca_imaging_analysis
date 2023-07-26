@@ -42,7 +42,7 @@ class RawFolder(object):
             solenoid_path = Path(self.session_path, filename)
 
             # This ignores temp files if csv file is open in Excel
-            if ".~lock" not in filename:
+            if ".~lock" not in filename and "._" not in filename:
                 # For new delivery code with solenoid_order.csv file
                 if "solenoid_order" in filename:
                     solenoid_data = pd.read_csv(solenoid_path)
