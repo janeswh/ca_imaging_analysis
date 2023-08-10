@@ -50,7 +50,7 @@ class RawFolder(object):
 
                     temp_solenoid_df = solenoid_data.copy()
                     temp_solenoid_df.sort_values(by=["Trial"], inplace=True)
-                    self.solenoid_order = temp_solenoid_df["Odor"].tolist()
+                    self.solenoid_order = temp_solenoid_df.iloc[:, 0].tolist()
 
                 # For Beichen's old code with solenoid_info.txt file
                 elif "solenoid_info.txt" in filename:

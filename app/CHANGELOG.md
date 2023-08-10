@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2023-08-10
+
+### Added
+
+- Added compatibility with new `solenoid_order.csv` files that contain odor panel type (1% or 10%)
+
 ## [0.3.1] - 2023-07-26
 
 ### Fixed
