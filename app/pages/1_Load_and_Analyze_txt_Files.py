@@ -16,7 +16,7 @@ import pdb
 
 def set_webapp_params():
     """
-    Sets the name of the Streamlit app along with other things
+    Sets the name of the Streamlit app
     """
     st.set_page_config(page_title="Load & Analyze .txt files")
     st.title("ROI Analysis")
@@ -68,7 +68,10 @@ def prompt_dir():
 
 def choose_sample_type():
     """
-    Prompts user to select the sample type - cell vs. glomerulus
+    Prompts user to select sample type - cell vs. glomerulus vs. grid
+
+    Returns:
+        Streamlit radio button containing the choice options
     """
 
     choice = st.radio("Select sample type:", ("Cell", "Glomerulus", "Grid"))
@@ -78,8 +81,10 @@ def choose_sample_type():
 
 def choose_run_type():
     """
-    Asks user whether they want to export the solenoid info as csv, or do the
-    analysis as normal.
+    Asks user whether they want to export the solenoid info as csv or do the analysis as normal
+
+    Returns:
+        string representing the type of run
     """
 
     choice = st.radio(
@@ -98,7 +103,17 @@ def run_analysis(
     folder_path, date, animal, ROI, sample_type, run_type, drop_trial
 ):
     """
-    Runs the analysis for one imaging session.
+    Runs the analysis for one imaging session. This is a wrapper around
+    RawFolder, which does the actual work
+
+    Args:
+        folder_path (str): Path to the folder to run the analysis for
+        date (str): Date of the analysis (YYYYMMDD)
+        animal (str): Name of the animal being analysed
+        ROI (str): Region of Interest
+        sample_type (str): Type of sample being analysed
+        run_type (str): Type of analysis to run
+        drop_trial (str): Whether to drop trials or not
     """
 
     data = RawFolder(folder_path, date, animal, ROI, sample_type, drop_trial)
@@ -130,6 +145,7 @@ def run_analysis(
             #  data_df = data.iterate_txt_files(file_paths)
             #  data.organize_all_data_df(data_df)
 
+            # Drop trials from the data set.
             if drop_trial:
                 data.drop_trials()
 
