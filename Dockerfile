@@ -1,6 +1,6 @@
-# FROM python:3.11-slim AS build
-FROM --platform=$BUILDPLATFORM python:3.11-slim-bookworm AS build
-ARG TARGETPLATFORM
+FROM python:3.11-slim AS build
+# FROM --platform=$BUILDPLATFORM python:3.11-slim-bookworm AS build
+# ARG TARGETPLATFORM
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV

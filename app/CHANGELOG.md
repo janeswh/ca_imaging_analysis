@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0] - 2023-08-14
+
+### Added
+
+- Added support for Arm64/Apple chips
+
 ## [0.4.0] - 2023-08-10
 
 ### Added
