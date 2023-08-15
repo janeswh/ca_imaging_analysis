@@ -15,18 +15,13 @@ import pdb
 
 
 def set_webapp_params():
-    """
-    Sets the name of the Streamlit app
-    """
+    """Sets the name of the Streamlit app"""
     st.set_page_config(page_title="Load & Analyze .txt files")
     st.title("ROI Analysis")
 
 
 def initialize_states():
-    """
-    Initializes session state variables
-    """
-    # # # --- Initialising SessionState ---
+    """Initializes session state variables."""
     if "manual_path" not in st.session_state:
         st.session_state.manual_path = False
     if "dir_path" not in st.session_state:
@@ -40,8 +35,8 @@ def initialize_states():
 
 
 def prompt_dir():
-    """
-    Prompts user for directory containing the raw .txt files to be analyzed
+    """Prompts user for directory containing the raw .txt files to be
+    analyzed.
     """
     st.markdown(
         "Please select (by double clicking into) the folder containing the Ca "
@@ -67,11 +62,10 @@ def prompt_dir():
 
 
 def choose_sample_type():
-    """
-    Prompts user to select sample type - cell vs. glomerulus vs. grid
+    """Prompts user to select sample type - cell vs. glomerulus vs. grid.
 
     Returns:
-        Streamlit radio button containing the choice options
+        A Streamlit radio button containing the choice options.
     """
 
     choice = st.radio("Select sample type:", ("Cell", "Glomerulus", "Grid"))
@@ -80,11 +74,11 @@ def choose_sample_type():
 
 
 def choose_run_type():
-    """
-    Asks user whether they want to export the solenoid info as csv or do the analysis as normal
+    """Asks user whether they want to export the solenoid info as csv or do
+    the analysis as normal.
 
     Returns:
-        string representing the type of run
+        A string representing the type of run.
     """
 
     choice = st.radio(
@@ -102,18 +96,16 @@ def choose_run_type():
 def run_analysis(
     folder_path, date, animal, ROI, sample_type, run_type, drop_trial
 ):
-    """
-    Runs the analysis for one imaging session. This is a wrapper around
-    RawFolder, which does the actual work
+    """Runs the analysis for one imaging session.
 
     Args:
-        folder_path (str): Path to the folder to run the analysis for
-        date (str): Date of the analysis (YYYYMMDD)
-        animal (str): Name of the animal being analysed
-        ROI (str): Region of Interest
-        sample_type (str): Type of sample being analysed
-        run_type (str): Type of analysis to run
-        drop_trial (str): Whether to drop trials or not
+        folder_path (str): Path to the folder to run the analysis for.
+        date (str): Date of the analysis (YYYYMMDD).
+        animal (str): Name of the animal being analysed.
+        ROI (str): Region of Interest.
+        sample_type (str): Type of sample being analysed.
+        run_type (str): Type of analysis to run.
+        drop_trial (str): Whether to drop trials or not.
     """
 
     data = RawFolder(folder_path, date, animal, ROI, sample_type, drop_trial)
@@ -136,14 +128,9 @@ def run_analysis(
                 "the selected directory."
             )
         else:
-            data.rename_txt()  # adds _000.txt to end of first trial file
-            data.get_txt_file_paths()
-            data.iterate_txt_files()  # iterates over each txt file and extracts data
-
-            # TODO:
-            #  file_paths = data.get_txt_file_paths()
-            #  data_df = data.iterate_txt_files(file_paths)
-            #  data.organize_all_data_df(data_df)
+            file_paths = data.get_txt_file_paths()
+            data_df = data.iterate_txt_files(file_paths)
+            data.organize_all_data_df(data_df)
 
             # Drop trials from the data set.
             if drop_trial:
@@ -156,7 +143,8 @@ def run_analysis(
                 desc=f"Analyzing {sample_type}",
             )
             for n_count in bar:
-                data.process_txt_file(n_count, bar, sample_type)
+                bar_text = data.process_txt_file(n_count, sample_type)
+                bar.set_description(bar_text, refresh=True)
 
             st.info("Analysis finished.")
 
