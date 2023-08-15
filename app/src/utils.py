@@ -10,31 +10,14 @@ from tkinter.filedialog import askdirectory
 import pdb
 
 
-def find_solenoid_file(session_path):
-    """
-    Find solenoid file in the session directory.
-
-    Args:
-        session_path: path to the session directory
-
-    Returns:
-        string with the name of the solenoid file
-    """
-
-    for filename in os.listdir(session_path):
-        if "solenoid_order" in filename:
-            return filename
-
-
 def check_solenoid_file(session_path):
-    """
-    Checks that solenoid. txt file is named properly and present.
+    """Checks that solenoid. txt file is named properly and present.
 
     Args:
-        session_path: path to the session directory. It must be a directory
+        session_path (str): Path to the session directory.
 
     Returns:
-        Path to the solenoid file
+        A string containing the path to the solenoid file.
     """
 
     solenoid_file = None
@@ -54,14 +37,13 @@ def check_solenoid_file(session_path):
 
 
 def check_uploaded_files(files):
-    """
-    Checks that all uploaded files end in _analysis.xlsx
+    """Checks that all uploaded files end in _analysis.xlsx.
 
     Args:
-        files: list of file objects to check for correctness
+        files (list): A list of file objects to check for correctness.
 
     Returns:
-        True if all files are correct, False if not or None
+        A bool value. True if all files are correct, False if not or None.
     """
 
     files_correct = None
@@ -86,17 +68,16 @@ def save_to_excel(
     animal_id=None,
     add_label=False,
 ):
-    """
-    Saves measurement dfs as one sheet per measurement type into Excel file.
-    By default, to_excel sets NaN values to "" using na_rep=""
+    """Saves measurement dfs as one sheet per measurement type into Excel file.
+    By default, to_excel sets NaN values to "" using na_rep="".
 
     Args:
-        dir_path (str): path to directory to save file
-        sheetname (str): name of sheet to save df to
-        xlsx_fname (str): name of xlsx file to save df to
-        df (pd.DataFrame): df to save
-        animal_id (str): animal id to use for file name formating
-        add_label (bool): if True add label to sheet (default False)
+        dir_path (str): A path to directory to save file.
+        sheetname (str): The name of sheet to save df to.
+        xlsx_fname (str): The name of the xlsx file to save df to.
+        df (pd.DataFrame): The df to save.
+        animal_id (str): The animal id to use for file name formating.
+        add_label (bool): If True add label to sheet (default False).
     """
 
     xlsx_path = Path(dir_path, xlsx_fname)
@@ -113,13 +94,12 @@ def save_to_excel(
 
 
 def format_workbook(xlsx_path, animal_id=None, add_label=False):
-    """
-    Adds borders to Excel spreadsheets
+    """Adds borders to Excel spreadsheets.
 
     Args:
-        xlsx_path (str): Path to the Excel file to be formatted
-        animal_id (str): ID of the animal to be used in the format
-        add_label (bool): If True adds label to A1 cell
+        xlsx_path (str): Path to the Excel file to be formatted.
+        animal_id (str): ID of the animal to be used in the format.
+        add_label (bool): If True adds label to A1 cell.
     """
 
     wb = openpyxl.load_workbook(xlsx_path)
@@ -149,16 +129,15 @@ def format_workbook(xlsx_path, animal_id=None, add_label=False):
 
 
 def check_sig_odors(odors_list, nosig_exps, files):
-    """
-    Checks the odors from the uploaded data and puts them in a list.
+    """Checks the odors from the uploaded data and puts them in a list.
 
     Args:
-        odors_list: list of odors to check
-        nosig_exps: list of experiments that are not significant
-        files: list of files uploaded for experiment
+        odors_list (list): The odors to check.
+        nosig_exps (list): The experiments that are not significant.
+        files (list): The files uploaded for experiment.
 
     Returns:
-        sig_odors list sorted by odors
+        A list of significant odors sorted by odor number.
     """
 
     # flatten list of odors
@@ -180,11 +159,11 @@ def check_sig_odors(odors_list, nosig_exps, files):
 
 
 def flatten(to_flatten):
-    """
-    Flattens a nested list of sig odors into a single list.
+    """Flattens a nested list of significant odors into a single list.
 
     Args:
-        to_flatten: The list to flatten. If it's a list it will be returned as is.
+        to_flatten (list): The nested list to flatten. If it's a list it
+            will be returned as is.
 
     Returns:
         A list of all elements of the list in the same order
@@ -198,11 +177,11 @@ def flatten(to_flatten):
 
 
 def make_pick_folder_button():
-    """
-    Makes the Pick folder button and checks whether it has been clicked. It is used to select a folder to be picked
+    """Makes the Pick folder button and checks whether it has been clicked.
+    It is used to select a folder to be picked.
 
     Returns:
-        button that is clicked
+        The button that is clicked.
     """
 
     clicked = st.button("Pick folder")
@@ -210,12 +189,10 @@ def make_pick_folder_button():
 
 
 def pop_folder_selector():
-    """
-    Pops up a dialog to select a folder.
-
+    """Pops up a dialog to select a folder.
 
     Returns:
-        Path to the selected folder
+        A string containing the path to the selected folder
     """
 
     # Set up tkinter
@@ -231,16 +208,16 @@ def pop_folder_selector():
 
 
 def get_selected_folder_info(dir_path):
-    """
-    Gets information about the selected folder. This is a wrapper around
+    """Gets information about the selected folder. This is a wrapper around
     get_session_info to allow the user to select a folder by clicking on
     the folder in the file dialog.
 
     Args:
-        dir_path: Path to the folder that is selected.
+        dir_path (str): Path to the folder that is selected.
 
     Returns:
-        The date, animal_ID, and ROI of the selected folder as strings.
+        A tuple (date, animal_ID, roi), containing the date, animal_ID,
+            and ROI of the selected folder as strings.
     """
 
     st.write("Selected folder:")
@@ -261,14 +238,15 @@ def get_selected_folder_info(dir_path):
 
 
 def get_session_info(folder):
-    """
-    Gets the date, animal ID and ROI info from the name of the selected folder.
+    """Gets the date, animal ID and ROI info from the name of the selected
+    folder.
 
     Args:
-        folder: Folder to be parsed.
+        folder (str): The name of the folder to be parsed.
 
     Returns:
-        The date, animal ID and ROI of the folder as strings.
+        A tuple (date, animal_ID, roi), containing the date, animal ID, and
+            ROI of the folder as strings.
     """
 
     date = folder.split("--")[0]
@@ -279,15 +257,14 @@ def get_session_info(folder):
 
 
 def read_txt_file(path):
-    """
-    Reads a single txt file from one trial into a dataframe. This is a
-    convenience function for read_csv that does not require a file path
+    """Reads a single txt file from one trial into a dataframe. This is a
+    convenience function for read_csv that does not require a file path.
 
     Args:
-        path: Path to the txt file
+        path (str): Path to the txt file.
 
     Returns:
-        DataFrame with the txt file's data in columns
+        A DataFrame with the txt file's data in columns.
     """
 
     txt_df = pd.read_csv(Path(path), sep="\t", index_col=0)
@@ -296,13 +273,12 @@ def read_txt_file(path):
 
 
 def save_to_csv(fname, path, df):
-    """
-    Saves a dataframe to a csv file.
+    """Saves a dataframe to a csv file.
 
     Args:
-        fname (str): The name of the csv file
-        path (str): The path to save the csv to
-        df (DataFrame): The dataframe to save to the csv file
+        fname (str): The name of the csv file.
+        path (str): The path to save the csv to.
+        df (DataFrame): The dataframe to save to the csv file.
     """
 
     csv_path = Path(path, fname)

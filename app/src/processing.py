@@ -105,6 +105,10 @@ def load_file(
     loaded_file.sort_data()
     loaded_file.make_plotting_dfs()
 
+    # # excel_dict = loaded_file.import_excel()
+    # loaded_file.sort_data()
+    # loaded_file.make_plotting_dfs()
+
     all_sig_odors.append(loaded_file.sig_odors)
 
     if dataset_type == "chronic":
@@ -341,26 +345,3 @@ def display_plots(measures_list, plots_list, selected_odor):
     """
     for measure in measures_list:
         st.plotly_chart(plots_list[selected_odor][measure])
-
-
-def process_txt_file(data, n_count, bar, sample_type):
-    raw_means, avg_means = data.collect_per_sample(
-        data.all_data_df, data.n_column_labels[n_count]
-    )
-
-    save_to_excel(
-        data.session_path,
-        data.n_column_labels[n_count],
-        f"{data.date}_{data.animal_id}_{data.ROI_id}_raw_means.xlsx",
-        raw_means,
-    )
-    # performs analysis for each sample
-    analysis_df = data.analyze_signal(avg_means)
-
-    # save avg_means to xlxs file
-    data.save_avg_means(avg_means, data.n_column_labels[n_count])
-
-    # save analyses values to xlxs file
-    data.save_sig_analysis(analysis_df, data.n_column_labels[n_count])
-
-    bar.set_description(f"Analyzing {sample_type} {n_count+1}", refresh=True)
