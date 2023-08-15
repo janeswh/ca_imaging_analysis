@@ -173,9 +173,7 @@ def main():
 
         if date:
             # if folder has been selected properly, proceed
-            solenoid_file = check_solenoid_file(
-                date, animal_id, roi, st.session_state.dir_path
-            )
+            solenoid_file = check_solenoid_file(st.session_state.dir_path)
 
             # if solenoid file is present and correctly named, proceed
             if solenoid_file:
