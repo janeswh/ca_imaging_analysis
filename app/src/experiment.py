@@ -1,3 +1,5 @@
+"""Contains classes for analyzing either .txt files or .xlsx summary files."""
+
 import pandas as pd
 import streamlit as st
 from pathlib import Path
@@ -10,19 +12,61 @@ from src.utils import read_txt_file, save_to_excel, save_to_csv
 
 
 class RawFolder(object):
+    """Runs and stores the analysis for a folder containing raw .txt files.
+
+    For the purposes of this class, a trial represents the data contained in
+    one .txt file, and a sample is the cell/glomerulus/grid (user's choice)
+    being imaged.
+
+    Attributes:
+        date (str): The date of the experiment.
+        animal_id (str): The animal ID from the experiment.
+        ROI_id (str): The ROI imaged in the experiment.
+        file_prefix (str): Prefix for the experiment metadata, used for
+            formatting.
+        sample_type (str): The sample type, e.g. "Cell", "Glomerulus", or "Grid".
+        solenoid_order (list): The order of odors/solenoids delivered in the
+            experiment.
+        solenoid_df (pd.DataFrame): The solenoid order, with Trial and Odor as
+            columns.
+        total_n (int): The total number of trials in the experiment.
+        n_column_labels (list): The sheet names for exported .xlsx.
+        all_data_df (pd.DataFrame): The df holding the collected fluorescence
+            values from every frame for every trial and odor for all .txt files.
+        session_path (str): The path to the selected folder.
+        drop_trials_list (list): Trials to drop, if selected.
+
+    """
+
     def __init__(
-        self, folder_path, date, animal_id, ROI_id, sample_type, drop_trials
+        self,
+        folder_path: str,
+        date: str,
+        animal_id: str,
+        ROI_id: str,
+        sample_type: str,
+        drop_trials: bool,
     ):
+        """Initializes an instance of RawFolder() for the selected folder.
+
+        Args:
+            folder_path: Path to the folder to run the analysis for.
+            date: Date of the experiment (YYYYMMDD).
+            animal: Name of the animal being analysed.
+            ROI: Region of Interest.
+            sample_type: Type of sample being analysed.
+            drop_trial: Whether to drop trials.
+        """
         self.date = date
         self.animal_id = animal_id
         self.ROI_id = ROI_id
         self.file_prefix = f"{self.date}_{self.animal_id}_{self.ROI_id}"
         self.sample_type = sample_type
-        self.solenoid_order = None
+        self.solenoid_order = []
         self.solenoid_df = None
         self.total_n = None
         self.n_column_labels = None
-        self.num_frames = None
+        self.all_data_df = None
 
         # Sets path to folder holding all the txt files for analysis.
         self.session_path = folder_path
@@ -33,9 +77,8 @@ class RawFolder(object):
             self.drop_trials_list = [int(x) for x in temp_drops]
 
     def get_solenoid_order(self):
-        """
-        Reads .csv or .txt solenoid file to get solenoid order
-        """
+        """Reads .csv or .txt solenoid file to get solenoid order."""
+
         for filename in os.listdir(self.session_path):
             solenoid_path = Path(self.session_path, filename)
 
@@ -72,13 +115,16 @@ class RawFolder(object):
                         solenoid_info_df.sort_values(by=["Odor"], inplace=True)
                         self.solenoid_df = solenoid_info_df
 
-        # # solenoid_filename = [self.date, self.animal_id, self.ROI_id]
-        # # solenoid_filename = "_".join(solenoid_filename)
-        # # solenoid_filename += "_solenoid_info.txt"
+    def rename_correct_format(
+        self, m: re.Match, filename: str, _ext: str, first: bool = False
+    ):
+        """Renames .txt files to the correct format.
 
-    def rename_correct_format(self, m, filename, _ext, first=False):
-        """
-        Renames .txt files to correct format
+        Args:
+            m: A regex match object for re-numbering .txt file names.
+            filename: The original file name.
+            _ext: The extension of the file.
+            first: Whether the file being renamed is the first trial.
         """
 
         if first:
@@ -96,17 +142,16 @@ class RawFolder(object):
 
     @property
     def _exp_name(self):
+        """str: The expected prefix of the original .txt file names."""
         return f"{self.date}--{self.animal_id}_{self.ROI_id}"
 
     @property
     def _csv_filename(self):
+        """str: The file name for exporting .csv file."""
         return f"{self.file_prefix}_solenoid_info.csv"
 
     def rename_txt(self):
-        """
-        Checks to see whether the data .txt files are named correctly, if not,
-        renames them.
-        """
+        """Renames .txt files if needed."""
 
         # pulls out txt file names, excluding solenoid file
         data_files = [
@@ -142,10 +187,13 @@ class RawFolder(object):
                     self.rename_correct_format(m, filename, _ext, first=True)
             st.info(".txt files renamed; proceeding with analysis.")
 
-    def get_txt_file_paths(self):
+    def get_txt_file_paths(self) -> list:
+        """Creates list of paths for all text files, excluding solenoid info.
+
+        Returns:
+            A list of all the .txt files.
         """
-        Creates list of paths for all text files, excluding solenoid info
-        """
+
         paths_list = [
             str(path)
             for path in Path(self.session_path).rglob("*.txt")
@@ -154,11 +202,17 @@ class RawFolder(object):
 
         return paths_list
 
-    def iterate_txt_files(self, txt_paths):
+    def iterate_txt_files(self, txt_paths: str) -> pd.DataFrame:
+        """Collects all .txt files data into one dataframe.
+
+        Args:
+            txt_paths: The paths to all the .txt files in the directory.
+
+        Returns:
+            all_data_df: A DataFrame holding fluorescence values from all
+                frames and trials for each odor, from all .txt files.
         """
-        Iterates through txt files, opens them as csv and converts each file to
-        dataframe, then collects everything inside a dict.
-        """
+
         if not txt_paths:
             raise Exception("No .txt files in directory")
 
@@ -188,7 +242,16 @@ class RawFolder(object):
 
         return all_data_df
 
-    def organize_all_data_df(self, all_data_df):
+    def organize_all_data_df(self, all_data_df: pd.DataFrame):
+        """Formats the df containing raw data for all .txt files.
+
+        Creates column names based on selected sample type.
+
+        Args:
+            all_data_df: A DataFrame holding fluorescence values from all
+                frames and trials for each odor, from all .txt files.
+        """
+
         # keep first three column names
         old_cols = all_data_df.columns[:3].tolist()
         mean_cols = len(all_data_df.columns) - 3
@@ -203,9 +266,27 @@ class RawFolder(object):
         )
         self.n_column_labels = new_cols
 
-        self.all_data_df = all_data_df
+        self.all_data_df = all_data_df.copy()
 
-    def process_txt_file(self, n_count, sample_type):
+    def process_txt_data(self, n_count: int, sample_type: str) -> str:
+        """Performs and saves analyses on the raw data from .txt files.
+
+        Analysis will generate three .xlsx files:
+            _analysis.xlsx, containing experiment analysis values
+            _avg_means.xlsx, containing the avg fluorescence intensity values
+                for each odor
+            _raw_means.xlsx, containing the raw fluorescence intensity values
+                for all trials for each odor
+
+        Args:
+            n_count: The trial number currently being analyzed (for iterating)
+            sample_type: The selected sample type.
+
+        Returns:
+            bar_txt: The text description for updating the progress bar.
+
+        """
+
         raw_means, avg_means = self.collect_per_sample(
             self.all_data_df, self.n_column_labels[n_count]
         )
@@ -239,19 +320,28 @@ class RawFolder(object):
         return bar_txt
 
     def drop_trials(self):
-        """
-        Drops excluded trials from all_data_df
-        """
+        """Drops excluded trials from all_data_df."""
 
         self.all_data_df = self.all_data_df.loc[
             ~self.all_data_df["Trial"].isin(self.drop_trials_list)
         ]
 
-    def collect_per_sample(self, all_data_df, sample):
+    def collect_per_sample(
+        self, all_data_df: pd.DataFrame, sample: str
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Collects the mean values from all trials for one sample.
+
+        Args:
+            all_data_df: A DataFrame holding fluorescence values from all
+                    frames and trials for each odor, from all .txt files.
+            sample: The sample currently being collected.
+
+        Returns:
+            A tuple (sorted_df, means), where sorted_df contains the raw mean
+            fluorescence values for each sample, and means, which contains the
+            mean of means.
         """
-        Collects the mean values from all trials for each neuron/glomerulus.
-        Returns the raw means for each sample and the mean of means.
-        """
+
         n_df = all_data_df[["Frame", "Trial", "Odor", sample]]
 
         # pivots n_df to sort by odor #
@@ -268,11 +358,17 @@ class RawFolder(object):
 
         return sorted_df, means
 
-    def analyze_signal(self, avg_means):
-        """
-        Calculates baseline signal using avg from frames #1-52
+    def analyze_signal(self, avg_means: pd.DataFrame) -> pd.DataFrame:
+        """A wrapper function for analyzing mean fluorescence values.
 
+        Args:
+            avg_means: The mean of mean fluorescence values from one sample.
+
+        Returns:
+            A DataFrame containing all the analysis values gathered for one
+                sample.
         """
+
         (
             baseline,
             peak,
@@ -334,28 +430,48 @@ class RawFolder(object):
 
         return response_analyses_df
 
-    def calculate_initial_nums(self, avg_means):
+    def calculate_initial_nums(
+        self, avg_means: pd.DataFrame
+    ) -> tuple[
+        pd.Series,
+        pd.Series,
+        pd.Series,
+        pd.Series,
+        pd.Series,
+        pd.Series,
+        pd.Series,
+        pd.DataFrame,
+    ]:
+        """Performs initial calculations for mean fluorescence values.
+
+        Args:
+            avg_means: The mean of mean fluorescence values from one sample.
+
+        Returns:
+            A tuple containing the following pd.Series/DataFrame (one value
+            per odor):
+                baseline: The fluorescence values from defined baseline period.
+                peak: The max fluorescence value during trial period.
+                deltaF: The change in fluorescence value from peak and baseline.
+                baseline_stdx3: Three standard deviations of baseline.
+                deltaF_blank: The deltaF value of the blank odor (last odor).
+                blank_sub_deltaF: The deltaF value with the blank odor's
+                    deltaF subtracted to remove blank response.
+                blank_sub_deltaF_F_perc: The blank-subtracted deltaF as a
+                    percent of baseline.
+                baseline_subtracted: The average fluorescence value, with
+                    baseline subtracted.
+        """
         baseline = avg_means[:52].mean()
 
         # Calculates peak using max value from frames #53-300
         peak = avg_means[52:300].max()
-
-        # Calculates deltaF using peak-baseline
         deltaF = peak - baseline
+        baseline_stdx3 = avg_means[:52].std() * 3
 
-        # Calculates 3 x std of baseline
-        baseline_stdx3 = avg_means[:46].std() * 3
-
-        # Get deltaF blank - blank is the last odor
         deltaF_blank = deltaF[avg_means.columns[-1]]
-
-        # Subtracts deltaF_blank from deltaF to remove blank response
         blank_sub_deltaF = deltaF - deltaF_blank
-
-        # Calculates blanksub_deltaF/F(%)
         blank_sub_deltaF_F_perc = blank_sub_deltaF / baseline * 100
-
-        # Calculates baseline-subtracted avg means
         baseline_subtracted = avg_means - baseline
 
         return (
