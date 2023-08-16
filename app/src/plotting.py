@@ -122,6 +122,21 @@ def set_color_scales(dataset_type):
     return colorscale
 
 
+def set_colors_legends(
+    dataset_type, color_scale, animal_ct, exp_ct, x_interval
+):
+    if dataset_type == "acute":
+        marker_color = color_scale["marker"][animal_ct + 1][exp_ct]
+        line_color = color_scale["lines"][animal_ct + 1][exp_ct]
+        legend_group = animal_ct
+    elif dataset_type == "chronic":
+        marker_color = color_scale["marker"][x_interval]
+        line_color = color_scale["lines"]
+        legend_group = exp_ct
+
+    return marker_color, line_color, legend_group
+
+
 def plot_acute_odor_measure_fig(
     sig_odor_exps,
     data_dict,
@@ -294,15 +309,9 @@ def add_measure_trace(
         y = [y_values]
 
     color_scale = set_color_scales(dataset_type)
-    # TODO: u could make this if/elif a helper method that returns the 2 colors + legend_group
-    if dataset_type == "acute":
-        marker_color = color_scale["marker"][animal_ct + 1][exp_ct]
-        line_color = color_scale["lines"][animal_ct + 1][exp_ct]
-        legend_group = animal_ct
-    elif dataset_type == "chronic":
-        marker_color = color_scale["marker"][x_interval]
-        line_color = color_scale["lines"]
-        legend_group = exp_ct
+    marker_color, line_color, legend_group = set_colors_legends(
+        dataset_type, color_scale, animal_ct, exp_ct, x_interval
+    )
 
     fig.add_trace(
         go.Box(

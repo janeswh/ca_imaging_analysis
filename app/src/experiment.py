@@ -23,7 +23,6 @@ class RawFolder(object):
         self.total_n = None
         self.n_column_labels = None
         self.num_frames = None
-        self.sig_odors = None
 
         # Sets path to folder holding all the txt files for analysis.
         self.session_path = folder_path
@@ -101,7 +100,7 @@ class RawFolder(object):
 
     @property
     def _csv_filename(self):
-        return f"{self._exp_name}_solenoid_info.csv"
+        return f"{self.file_prefix}_solenoid_info.csv"
 
     def rename_txt(self):
         """
@@ -221,7 +220,7 @@ class RawFolder(object):
         save_to_excel(
             self.session_path,
             self.n_column_labels[n_count],
-            f"{self.date}_{self.animal_id}_{self.ROI_id}_raw_means.xlsx",
+            f"{self.file_prefix}_raw_means.xlsx",
             raw_means,
         )
 
@@ -288,12 +287,11 @@ class RawFolder(object):
         # Determines whether response is significant by checking whether
         # blank_sub_deltaF is greater than baseline_stdx3.
         significance_bool = blank_sub_deltaF > baseline_stdx3
-        self.sig_odors = significance_bool[significance_bool].index.values
+        sig_odors = significance_bool[significance_bool].index.values
 
-        significance_report = self.get_sig_responses(
-            significance_bool=significance_bool,
-            blank_sub_deltaF_F_perc=blank_sub_deltaF_F_perc,
-        )
+        significance_report = significance_bool.copy()
+        significance_report[sig_odors] = blank_sub_deltaF_F_perc[sig_odors]
+        significance_report = pd.Series(significance_report)
 
         auc, auc_blank = self.calc_auc(avg_means, baseline=baseline)
 
@@ -306,7 +304,8 @@ class RawFolder(object):
             latency,
             time_to_peak,
         ) = self.analyze_sig_responses(
-            avg_means,
+            sig_odors=sig_odors,
+            avg_means=avg_means,
             auc=auc,
             auc_blank=auc_blank,
             deltaF=deltaF,
@@ -380,43 +379,21 @@ class RawFolder(object):
 
         return auc, auc_blank
 
-    def get_sig_responses(self, significance_bool, blank_sub_deltaF_F_perc):
-        """
-        :param List[bool] significance_bool:
-        :param float blank_sub_deltaF_F_perc:
-        :return rtype_here:
-        """
-
-        # TODO 5: since we are using self.sig_odors elsewhere, it would be better
-        #  to set the value outside of this method -- also bc the values that
-        #  significance_bool is dependent on are being passed into this method.
-        #  it is easy to separate this. (next 4 lines move out)
-
-        # reports False if odor is not significant, otherwise
-        # reports blanksub_deltaF/F(%)
-        significance_report = significance_bool.copy()
-        significance_report[self.sig_odors] = blank_sub_deltaF_F_perc[
-            self.sig_odors
-        ]
-        significance_report = pd.Series(significance_report)
-
-        return significance_report
-
     def analyze_sig_responses(
-        self, avg_means, auc, auc_blank, deltaF, baseline_subtracted
+        self, sig_odors, avg_means, auc, auc_blank, deltaF, baseline_subtracted
     ):
         # Creates 'N/A' template for non-significant odor responses
         na_template = pd.Series("N/A", index=avg_means.columns)
 
         # Calculates blank-subtracted AUC only if response is present
         blank_sub_auc = na_template.copy()
-        blank_sub_auc[self.sig_odors] = auc[self.sig_odors] - auc_blank
+        blank_sub_auc[sig_odors] = auc[sig_odors] - auc_blank
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
         max_frames = avg_means[:300].idxmax()
         peak_times = na_template.copy()
-        peak_times[self.sig_odors] = max_frames[self.sig_odors] * 0.0661
+        peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
 
         # Get odor onset - Frame 57?
         odor_onset = 57 * 0.0661
@@ -425,7 +402,7 @@ class RawFolder(object):
         response_onset = na_template.copy()
         onset_amp = deltaF * 0.05
 
-        for sig_odor in self.sig_odors:
+        for sig_odor in sig_odors:
             window = baseline_subtracted[56:300][sig_odor]
             onset_idx = np.argmax(window >= onset_amp[sig_odor])
             onset_time = window.index[onset_idx] * 0.0661
@@ -433,12 +410,12 @@ class RawFolder(object):
 
         # Calculate latency
         latency = na_template.copy()
-        latency[self.sig_odors] = response_onset[self.sig_odors] - odor_onset
+        latency[sig_odors] = response_onset[sig_odors] - odor_onset
 
         # Calculate time to peak
         time_to_peak = na_template.copy()
-        time_to_peak[self.sig_odors] = (
-            peak_times[self.sig_odors] - response_onset[self.sig_odors]
+        time_to_peak[sig_odors] = (
+            peak_times[sig_odors] - response_onset[sig_odors]
         )
 
         return (
@@ -491,23 +468,24 @@ class RawFolder(object):
             "Time to peak (s)",
         ]
 
-        odor_labels = pd.Series(
-            [f"Odor {x}" for x in range(1, len(avg_means.columns) + 1)]
-        ).set_axis(range(1, len(avg_means.columns) + 1))
+        num_odors = len(avg_means.columns)
+        series_axis = range(1, num_odors + 1)
 
-        deltaF_blank_series = (
-            pd.Series([deltaF_blank] * len(avg_means.columns)).set_axis(
-                range(1, len(avg_means.columns) + 1)
-            ),
+        odor_labels = pd.Series([f"Odor {x}" for x in series_axis]).set_axis(
+            series_axis
         )
 
-        auc_blank_series = pd.Series(
-            [odor_onset] * len(avg_means.columns)
-        ).set_axis(range(1, len(avg_means.columns) + 1))
+        deltaF_blank_series = pd.Series([deltaF_blank] * num_odors).set_axis(
+            series_axis
+        )
 
-        odor_onset_series = pd.Series(
-            [odor_onset] * len(avg_means.columns)
-        ).set_axis(range(1, len(avg_means.columns) + 1))
+        auc_blank_series = pd.Series([auc_blank] * num_odors).set_axis(
+            series_axis
+        )
+
+        odor_onset_series = pd.Series([odor_onset] * num_odors).set_axis(
+            series_axis
+        )
 
         series_list = [
             odor_labels,
@@ -547,26 +525,21 @@ class RawFolder(object):
 
 
 class ExperimentFile(object):
-    def __init__(self, file, df_list, dataset_type):
+    def __init__(self, file, dataset_type):
         self.file = file
         self.dataset_type = dataset_type
         file_parts = file.name.split("_")[0:3]  # this is a list
         self.date, self.animal_id, self.roi = file_parts
         self.exp_name = "_".join(file_parts)
-        self.sig_odors = []
-        self.df_list = df_list
 
         self.sample_type = None
-        self.data_dict = None
         self.tuple_dict = None
-        self.sig_data_df = None
 
     def import_excel(self):
         """
         Imports each .xlsx file into dictionary
         """
-
-        self.data_dict = pd.read_excel(
+        data_dict = pd.read_excel(
             self.file,
             sheet_name=None,
             header=1,
@@ -575,16 +548,7 @@ class ExperimentFile(object):
             dtype="object",
         )
 
-        # data_dict = pd.read_excel(
-        #     self.file,
-        #     sheet_name=None,
-        #     header=1,
-        #     index_col=0,
-        #     na_values="FALSE",
-        #     dtype="object",
-        # )
-
-        # return data_dict
+        return data_dict
 
     # def shared_method(self):
     #     do stuff
@@ -594,13 +558,13 @@ class ExperimentFile(object):
     #     elif acute:
     #         do other stuff
 
-    def sort_data(self):
+    def sort_data(self, data_dict, df_list):
         """
         Converts imported dict into dataframe for each measurement
         """
         self.tuple_dict = {
             (outerKey, innerKey): values
-            for outerKey, innerDict in self.data_dict.items()
+            for outerKey, innerDict in data_dict.items()
             for innerKey, values in innerDict.items()
         }
 
@@ -618,6 +582,7 @@ class ExperimentFile(object):
         ] = ""
 
         mega_df = temp_mega_df.copy().T
+        appended_df_list = [[] for x in range(5)]
 
         for measure_ct, measure in enumerate(st.session_state.measures):
             temp_measure_df = pd.DataFrame(mega_df.loc[measure]).T.stack().T
@@ -633,18 +598,20 @@ class ExperimentFile(object):
                 index=lambda x: int(x.split(" ")[1]), inplace=True
             )
             temp_measure_df.index.rename(self.sample_type, inplace=True)
+            concat_pd = pd.concat([df_list[measure_ct], temp_measure_df])
+            appended_df_list[measure_ct] = concat_pd
 
-            concat_pd = pd.concat([self.df_list[measure_ct], temp_measure_df])
-            self.df_list[measure_ct] = concat_pd
+        return appended_df_list
 
-    def make_plotting_dfs(self):
+    def make_plotting_dfs(self, data_dict):
         """
         Makes the dfs used for plotting measusrements
         """
-        self.sig_data_df = pd.DataFrame()
+        sig_data_df = pd.DataFrame()
+        sig_odors = []
 
         # drop non-significant colums from each df using NaN values
-        for data_df in self.data_dict.values():
+        for data_df in data_dict.values():
             data_df.dropna(axis=1, inplace=True)
 
             # extracts measurements to plot
@@ -658,13 +625,13 @@ class ExperimentFile(object):
                 ]
             ]
 
-            self.sig_data_df = pd.concat([self.sig_data_df, data_df], axis=1)
+            sig_data_df = pd.concat([sig_data_df, data_df], axis=1)
 
             # gets list of remaining significant odors
             if len(data_df.columns.values) == 0:
                 pass
             else:
                 df_sig_odors = data_df.columns.values.tolist()
-                self.sig_odors.append(df_sig_odors)
+                sig_odors.append(df_sig_odors)
 
-        # TODO: return self.sig_odors, self.sig_data_df so processing can use
+        return sig_odors, sig_data_df
