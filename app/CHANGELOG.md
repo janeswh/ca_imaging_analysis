@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2023-08-16
+
+### Fixed
+
+- Fixed `baseline_std3x3` using a different `avg_means` window length than `baseline`
+
 ## [0.5.0] - 2023-08-14
 
 ### Added

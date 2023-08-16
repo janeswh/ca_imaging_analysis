@@ -1,3 +1,6 @@
+"""Contains helper utilities for processing experiment folders and data saving.
+"""
+
 from pathlib import Path
 import pandas as pd
 import os
@@ -69,6 +72,7 @@ def save_to_excel(
     add_label=False,
 ):
     """Saves measurement dfs as one sheet per measurement type into Excel file.
+
     By default, to_excel sets NaN values to "" using na_rep="".
 
     Args:
@@ -140,7 +144,6 @@ def check_sig_odors(odors_list, nosig_exps, files):
         A list of significant odors sorted by odor number.
     """
 
-    # flatten list of odors
     flat_odors_list = flatten(odors_list)
 
     if len(nosig_exps) == len(files):
@@ -158,41 +161,41 @@ def check_sig_odors(odors_list, nosig_exps, files):
         return sig_odors
 
 
-def flatten(to_flatten):
+def flatten(to_flatten: str | list) -> list:
     """Flattens a nested list of significant odors into a single list.
 
     Args:
-        to_flatten (list): The nested list to flatten. If it's a list it
-            will be returned as is.
+        to_flatten: The nested list of odors to flatten. If it only contains
+            a single odor, it will be returned as a list.
 
     Returns:
         A list of all elements of the list in the same order
     """
 
-    if not isinstance(to_flatten, list):  # if not list
+    if not isinstance(to_flatten, list):  # If single odor (str)
         return [to_flatten]
     return [
         x for sub in to_flatten for x in flatten(sub)
     ]  # recurse and collect
 
 
-def make_pick_folder_button():
+def make_pick_folder_button() -> bool:
     """Makes the Pick folder button and checks whether it has been clicked.
-    It is used to select a folder to be picked.
 
     Returns:
-        The button that is clicked.
+        True if button was clicked, False if not.
     """
 
     clicked = st.button("Pick folder")
+
     return clicked
 
 
-def pop_folder_selector():
+def pop_folder_selector() -> str:
     """Pops up a dialog to select a folder.
 
     Returns:
-        A string containing the path to the selected folder
+        The path to the selected folder
     """
 
     # Set up tkinter
@@ -203,21 +206,17 @@ def pop_folder_selector():
     root.wm_attributes("-topmost", 1)
 
     dir_path = askdirectory(master=root)
-
     return dir_path
 
 
-def get_selected_folder_info(dir_path):
-    """Gets information about the selected folder. This is a wrapper around
-    get_session_info to allow the user to select a folder by clicking on
-    the folder in the file dialog.
+def get_selected_folder_info(dir_path: str) -> tuple[str, str, str]:
+    """Gets information about the selected folder.
 
     Args:
-        dir_path (str): Path to the folder that is selected.
+        dir_path: Path to the selected folder.
 
     Returns:
-        A tuple (date, animal_ID, roi), containing the date, animal_ID,
-            and ROI of the selected folder as strings.
+        A tuple containing the date, animal_ID, and ROI of the selected folder.
     """
 
     st.write("Selected folder:")
@@ -237,16 +236,15 @@ def get_selected_folder_info(dir_path):
     return date, animal_ID, roi
 
 
-def get_session_info(folder):
+def get_session_info(folder: str) -> tuple[str, str, str]:
     """Gets the date, animal ID and ROI info from the name of the selected
     folder.
 
     Args:
-        folder (str): The name of the folder to be parsed.
+        folder: The name of the folder to be parsed.
 
     Returns:
-        A tuple (date, animal_ID, roi), containing the date, animal ID, and
-            ROI of the folder as strings.
+        A tuple containing the date, animal ID, and ROI of the folder.
     """
 
     date = folder.split("--")[0]
@@ -256,12 +254,11 @@ def get_session_info(folder):
     return date, animal_ID, roi
 
 
-def read_txt_file(path):
-    """Reads a single txt file from one trial into a dataframe. This is a
-    convenience function for read_csv that does not require a file path.
+def read_txt_file(path: str) -> pd.DataFrame:
+    """Reads a single txt file from one trial into a dataframe.
 
     Args:
-        path (str): Path to the txt file.
+        path: Path to the txt file.
 
     Returns:
         A DataFrame with the txt file's data in columns.
@@ -272,13 +269,13 @@ def read_txt_file(path):
     return txt_df
 
 
-def save_to_csv(fname, path, df):
+def save_to_csv(fname: str, path: str, df: pd.DataFrame):
     """Saves a dataframe to a csv file.
 
     Args:
-        fname (str): The name of the csv file.
-        path (str): The path to save the csv to.
-        df (DataFrame): The dataframe to save to the csv file.
+        fname: The name of the csv file.
+        path: The path to save the csv to.
+        df: The dataframe to save to the csv file.
     """
 
     csv_path = Path(path, fname)
