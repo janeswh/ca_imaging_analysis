@@ -65,23 +65,7 @@ def make_empty_containers(dataset_type):
     return dict_list
 
 
-def make_empty_measurements_df():
-    """
-    Makes empty dfs to hold measurement values
-    """
-    baseline_df = pd.DataFrame()
-    blank_sub_df = pd.DataFrame()
-    auc_df = pd.DataFrame()
-    latency_df = pd.DataFrame()
-    ttpeak_df = pd.DataFrame()
-
-    df_list = [baseline_df, blank_sub_df, auc_df, latency_df, ttpeak_df]
-
-    return df_list
-
-
 def load_file(
-    load_bar,
     file,
     df_list,
     dict_list,
@@ -96,40 +80,41 @@ def load_file(
     elif dataset_type == "chronic":
         nosig_exps, all_sig_odors, data_dict, all_exps = dict_list
 
-    loaded_file = ExperimentFile(file, df_list, dataset_type)
+    loaded_file = ExperimentFile(file, dataset_type)
+    bar_text = f"Loading data from {loaded_file.exp_name}"
 
-    load_bar.set_description(
-        f"Loading data from {loaded_file.exp_name}", refresh=True
-    )
-    loaded_file.import_excel()
-    loaded_file.sort_data()
-    loaded_file.make_plotting_dfs()
+    excel_dict = loaded_file.import_excel()
+    appended_df_list = loaded_file.sort_data(excel_dict, df_list)
+    sig_odors, sig_data_df = loaded_file.make_plotting_dfs(excel_dict)
 
-    # # excel_dict = loaded_file.import_excel()
-    # loaded_file.sort_data()
-    # loaded_file.make_plotting_dfs()
-
-    all_sig_odors.append(loaded_file.sig_odors)
+    all_sig_odors.append(sig_odors)
 
     if dataset_type == "chronic":
         all_exps.append(loaded_file.exp_name)
 
-    if not loaded_file.sig_data_df.empty:
+    if not sig_data_df.empty:
         if dataset_type == "acute":
             data_dict[loaded_file.animal_id][
                 loaded_file.exp_name
-            ] = loaded_file.sig_data_df
+            ] = sig_data_df
         elif dataset_type == "chronic":
-            data_dict[loaded_file.exp_name] = loaded_file.sig_data_df
-    if loaded_file.sig_data_df.empty:
+            data_dict[loaded_file.exp_name] = sig_data_df
+    if sig_data_df.empty:
         nosig_exps.append(loaded_file.exp_name)
+
+    if dataset_type == "acute":
+        appended_dict_list = nosig_exps, all_sig_odors, data_dict
+    elif dataset_type == "chronic":
+        appended_dict_list = nosig_exps, all_sig_odors, data_dict, all_exps
+
+    return appended_df_list, appended_dict_list, bar_text
 
 
 def import_all_excel_data(dataset_type, files):
     dict_list = make_empty_containers(dataset_type)
 
     # makes df for each measurement, for summary csv
-    df_list = make_empty_measurements_df()
+    df_list = [pd.DataFrame() for x in range(5)]
 
     if dataset_type == "chronic":
         files = sort_files_by_date(files)
@@ -137,7 +122,12 @@ def import_all_excel_data(dataset_type, files):
     # adds progress bar
     load_bar = stqdm(files, desc="Loading ")
     for file in load_bar:
-        load_file(load_bar, file, df_list, dict_list, dataset_type)
+        appended_df_list, appended_dict_list, bar_text = load_file(
+            file, df_list, dict_list, dataset_type
+        )
+        load_bar.set_description(bar_text, refresh=True)
+        df_list = appended_df_list
+        dict_list = appended_dict_list
 
     return dict_list, df_list
 

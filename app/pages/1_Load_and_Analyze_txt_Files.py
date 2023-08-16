@@ -128,6 +128,7 @@ def run_analysis(
                 "the selected directory."
             )
         else:
+            data.rename_txt()  # adds _000.txt to end of first trial file
             file_paths = data.get_txt_file_paths()
             data_df = data.iterate_txt_files(file_paths)
             data.organize_all_data_df(data_df)
