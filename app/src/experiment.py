@@ -391,7 +391,6 @@ class RawFolder(object):
 
         auc, auc_blank = self.calc_auc(avg_means, baseline=baseline)
 
-        # only do the below if response is present
         (
             blank_sub_auc,
             peak_times,
@@ -485,7 +484,21 @@ class RawFolder(object):
             baseline_subtracted,
         )
 
-    def calc_auc(self, avg_means, baseline):
+    def calc_auc(
+        self, avg_means: pd.DataFrame, baseline: pd.Series
+    ) -> tuple[pd.Series, np.float64]:
+        """Calculates area under curve (AUC).
+
+        Args:
+            avg_means: The mean of mean fluorescence values from one sample.
+            baseline: Baseline fluorescence values.
+
+        Returns:
+            A tuple containing a pd.Series (AUC values for each odor) and
+                a np.float64 value (AUC value for blank odor).
+
+        """
+
         # Calculates AUC using sum of values from frames # 1-300
         auc = (avg_means[:300].sum() - (baseline * 300)) * 0.0661
         auc.clip(lower=0, inplace=True)  # Sets negative AUC values to 0
@@ -496,8 +509,33 @@ class RawFolder(object):
         return auc, auc_blank
 
     def analyze_sig_responses(
-        self, sig_odors, avg_means, auc, auc_blank, deltaF, baseline_subtracted
-    ):
+        self,
+        sig_odors: np.ndarray,
+        avg_means: pd.DataFrame,
+        auc: pd.Series,
+        auc_blank: np.float64,
+        deltaF: pd.Series,
+        baseline_subtracted: pd.DataFrame,
+    ) -> tuple[pd.Series, pd.Series, float, pd.Series, pd.Series, pd.Series]:
+        """Analyzes odor responses for significant responses only.
+
+        Args:
+            sig_odors: Odors with significant responses.
+            avg_means: The mean of mean fluorescence values from one sample.
+            auc: The area under curve values for all odor.
+            auc_blank: The area under curve values for the blank odor.
+            deltaF: The deltaF values for all odors.
+            baseline_subtracted: The baseline-subtracted fluorescence values.
+
+        Returns:
+            blank_sub_auc: The AUC, minus the blank AUC.
+            peak_times: The times of peak fluorescence for all odors.
+            odor_onset: The odor onset time for all odors (frame 57).
+            response_onset: The response onset times for all odors.
+            latency: The latency to response onset from odor onset.
+            time_to_peak: The times from response onset to response peak.
+        """
+
         # Creates 'N/A' template for non-significant odor responses
         na_template = pd.Series("N/A", index=avg_means.columns)
 
@@ -507,11 +545,11 @@ class RawFolder(object):
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
-        max_frames = avg_means[:300].idxmax()
+        max_frames = avg_means[52:300].idxmax()
         peak_times = na_template.copy()
         peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
 
-        # Get odor onset - Frame 57?
+        # Get odor onset - Frame 57
         odor_onset = 57 * 0.0661
 
         # Calculate response onset only for significant odors
@@ -519,16 +557,16 @@ class RawFolder(object):
         onset_amp = deltaF * 0.05
 
         for sig_odor in sig_odors:
+            # Window doesn't start at frame 53 because it can't precede
+            #  odor onset
             window = baseline_subtracted[56:300][sig_odor]
             onset_idx = np.argmax(window >= onset_amp[sig_odor])
             onset_time = window.index[onset_idx] * 0.0661
             response_onset[sig_odor] = onset_time
 
-        # Calculate latency
         latency = na_template.copy()
         latency[sig_odors] = response_onset[sig_odors] - odor_onset
 
-        # Calculate time to peak
         time_to_peak = na_template.copy()
         time_to_peak[sig_odors] = (
             peak_times[sig_odors] - response_onset[sig_odors]
@@ -545,25 +583,54 @@ class RawFolder(object):
 
     def make_analysis_df(
         self,
-        avg_means,
-        baseline,
-        peak,
-        deltaF,
-        baseline_stdx3,
-        deltaF_blank,
-        blank_sub_deltaF,
-        blank_sub_deltaF_F_perc,
-        significance_report,
-        auc,
-        auc_blank,
-        blank_sub_auc,
-        peak_times,
-        odor_onset,
-        response_onset,
-        latency,
-        time_to_peak,
-    ):
-        # puts everything in a df
+        avg_means: pd.DataFrame,
+        baseline: pd.Series,
+        peak: pd.Series,
+        deltaF: pd.Series,
+        baseline_stdx3: pd.Series,
+        deltaF_blank: pd.Series,
+        blank_sub_deltaF: pd.Series,
+        blank_sub_deltaF_F_perc: pd.Series,
+        significance_report: pd.Series,
+        auc: pd.Series,
+        auc_blank: np.float64,
+        blank_sub_auc: pd.Series,
+        peak_times: pd.Series,
+        odor_onset: float,
+        response_onset: pd.Series,
+        latency: pd.Series,
+        time_to_peak: pd.Series,
+    ) -> pd.DataFrame:
+        """Places analysis results into a df.
+
+        Args:
+            avg_means: The mean of mean fluorescence values from one sample.
+            baseline: The fluorescence values from defined baseline period.
+            peak: The max fluorescence value during the trial period.
+            deltaF: The change in fluorescence value from peak and baseline.
+            baseline_stdx3: Three standard deviations of baseline.
+            deltaF_blank: deltaF value of the blank odor (last odor).
+            blank_sub_deltaF: deltaF values with the blank odor's deltaF
+                subtracted to remove blank response.
+            blank_sub_deltaF_F_perc: The blank-subtracted deltaF as a
+                percent of baseline.
+            significance report: A Series of denoting whether an odor had a
+                significant response; if yes, print blank_sub_deltaF_F_perc,
+                else print FALSE.
+            auc: The area under curve values for all odor.
+            auc_blank: The area under curve values for the blank odor.
+            blank_sub_auc: The AUC, minus the blank AUC.
+            peak_times: The times of peak fluorescence for all odors.
+            odor_onset: The odor onset time for all odors (frame 57).
+            response_onset: The response onset times for all odors.
+            latency: The latency to response onset from odor onset.
+            time_to_peak: The times from response onset to response peak.
+
+        Returns:
+            All the analysis results in a DataFrame, with rows as measurement
+                labels and columns as Odor #.
+        """
+
         col_names = [
             "Odor",
             "Baseline",
@@ -633,9 +700,7 @@ class RawFolder(object):
         return response_analyses_df
 
     def save_solenoid_info(self):
-        """
-        Saves the solenoid info (odor # by trial) as csv.
-        """
+        """Saves the solenoid info (odor # by trial) as csv."""
         fname = self._csv_filename
         save_to_csv(fname, self.session_path, self.solenoid_df)
 

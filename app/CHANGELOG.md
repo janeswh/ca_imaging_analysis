@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fixed `baseline_std3x3` using a different `avg_means` window length than `baseline`
+- Fixed `max_frames` using a different `avg_means` window length than `peak`
 
 ## [0.5.0] - 2023-08-14
 
