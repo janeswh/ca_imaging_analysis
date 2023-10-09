@@ -11,8 +11,11 @@ Analysis will generate three .xlsx files:
         odor
     _raw_means.xlsx, containing the raw fluorescence intensity values for all 
         trials for each odor
-
 """
+
+import streamlit as st
+import os
+from stqdm import stqdm
 
 from src.utils import (
     make_pick_folder_button,
@@ -23,21 +26,19 @@ from src.utils import (
 
 from src.experiment import RawFolder
 
-import streamlit as st
-import os
-from stqdm import stqdm
-
 import pdb
 
 
 def set_webapp_params():
-    """Sets the name of the Streamlit app"""
+    """Sets the name of the Streamlit app."""
+
     st.set_page_config(page_title="Load & Analyze .txt files")
     st.title("ROI Analysis")
 
 
 def initialize_states():
     """Initializes session state variables."""
+
     if "manual_path" not in st.session_state:
         st.session_state.manual_path = False
     if "dir_path" not in st.session_state:
@@ -54,6 +55,7 @@ def prompt_dir():
     """Prompts user for directory containing the raw .txt files to be
     analyzed.
     """
+
     st.markdown(
         "Please select (by double clicking into) the folder containing the Ca "
         "imaging raw .txt files from the imaging session you want to analyze. "

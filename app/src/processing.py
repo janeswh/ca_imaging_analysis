@@ -1,3 +1,5 @@
+"""Contains functions for processing the data loaded from .xlsx files."""
+
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -19,18 +21,25 @@ from src.experiment import ExperimentFile
 import pdb
 
 
-def load_avg_means(file):
-    """
-    Loads the average means from an experiment into a dict, with sheet
-    names/sample # as keys, df as values
+def load_avg_means(file: str) -> tuple[dict, list]:
+    """Loads the average means from an experiment into a dictionary, with sheet
+    names/sample # as keys, DataFrame as values.
 
+    Args:
+        file: The path to the .xlsx file containing the average means.
+
+    Returns:
+        avg_means_dict: Dict containing the average means from avg_means.xlsx
+            file.
+        odor_list: The list of odors found in the .xlsx file.
     """
+
     avg_means_dict = pd.read_excel(file, sheet_name=None)
     st.info(
         f"Avg means loaded successfully for {len(avg_means_dict)} " "samples."
     )
 
-    # the below tries to get list of odor #s from column names
+    # The below tries to get list of odor #s from column names
     first_sample_df = next(iter(avg_means_dict.values()))
 
     odor_list = [x for x in first_sample_df.columns.values if type(x) == int]
@@ -38,10 +47,18 @@ def load_avg_means(file):
     return avg_means_dict, odor_list
 
 
-def make_empty_containers(dataset_type):
+def make_empty_containers(dataset_type: str) -> list:
+    """Makes a list of empty lists and dicts to hold experimental data and the
+    ids of significant vs. non-significant experiments and odors.
+
+    Args:
+        dataset_type: Whether the experiment is chronic or acute.
+
+    Returns:
+        A list containing experimental data and the ids of significant
+        experiments and odors.
     """
-    Makes empty dicts and lists to hold sig_exp and odor data
-    """
+
     # makes list to hold all file names for ordering
     all_exps = []
 
@@ -66,15 +83,34 @@ def make_empty_containers(dataset_type):
 
 
 def load_file(
-    file,
-    df_list,
-    dict_list,
-    dataset_type,
-):
+    file: str,
+    df_list: list,
+    dict_list: list,
+    dataset_type: str,
+) -> tuple[list, list, str]:
+    """Creates an ExperimentFile object for each imported file, then processes
+    the file for Excel saving and plotting.
+
+    Args:
+        file: streamlit.runtime.uploaded_file_manager.UploadedFile, csv file
+        df_list: A list of DataFrames to hold the DataFrames for each
+            analysis measurement.
+        dict_list: A list of lists and dictionary that contains experimental
+        data and the ids of significant experiments and odors.
+        dataset_type: Chronic or acute experiment type.
+
+    Returns:
+        appended_df_list: A list of a list of DataFrames, one list for each
+            measurement contained in analysis.xlsx. Values from each file are
+            appended as new rows in the DataFrames via ExperimentFile.sort_data().
+        appended_dict_list: A list of lists and dictionary containing experimental
+            data and the ids of significant experiments and odors. Experiment
+            and odor ids from each file are appended as new items in the list,
+            and significant data are appended with the experiment name as keys
+            in the dictionary, all done via ExperimentFile.sort_data().
+        bar_text: The text to display on the progress bar.
     """
-    Creates an ExperimentFile object for each imported file, then processes
-    the file for Excel saving and plotting
-    """
+
     if dataset_type == "acute":
         nosig_exps, all_sig_odors, data_dict = dict_list
     elif dataset_type == "chronic":
@@ -110,7 +146,25 @@ def load_file(
     return appended_df_list, appended_dict_list, bar_text
 
 
-def import_all_excel_data(dataset_type, files):
+def import_all_excel_data(dataset_type: str, files: list) -> tuple[list, list]:
+    """A wrapper for looping through all selected .xlsx files for importing
+    and processing via load_file.
+
+    New data for each .xlsx file are appended onto existing DataFrames and
+    dictionary via ExperimentFile.sort_data(), called by load_file.
+
+    Args:
+        dataset_type: Chronic or acute experiment type.
+        files: A list of .xlsx files uploaded to Streamlit.
+
+    Returns:
+        appended_df_list: A list of a list of DataFrames, one list for each
+            measurement contained in analysis.xlsx
+        appended_dict_list: A list of dictionaries containing experimental
+            data and the ids of significant experiments and odors.
+        bar_text: The text to display on the progress bar.
+    """
+
     dict_list = make_empty_containers(dataset_type)
 
     # makes df for each measurement, for summary csv
@@ -122,17 +176,29 @@ def import_all_excel_data(dataset_type, files):
     # adds progress bar
     load_bar = stqdm(files, desc="Loading ")
     for file in load_bar:
+        # Get and append new values for each .xlsx file
         appended_df_list, appended_dict_list, bar_text = load_file(
             file, df_list, dict_list, dataset_type
         )
         load_bar.set_description(bar_text, refresh=True)
+
+        # Save new data to be passed in again via the next loop
         df_list = appended_df_list
         dict_list = appended_dict_list
 
     return dict_list, df_list
 
 
-def sort_files_by_date(files):
+def sort_files_by_date(files: list) -> list:
+    """Sorts the uploaded .xlsx files by date for processing.
+
+    Args:
+        files: A list of .xlsx files uploaded to Streamlit.
+
+    Returns:
+        The list of uploaded files, sorted by date.
+    """
+
     sorted_files = sorted(
         files,
         key=lambda file: datetime.strptime(file.name.split("_")[0], "%y%m%d"),
@@ -141,9 +207,21 @@ def sort_files_by_date(files):
     return sorted_files
 
 
-def get_odor_data(odor, dataset_type, data_dict):
-    """
-    Collects the data for odors with significant responses
+def get_odor_data(odor: str, dataset_type: str, data_dict: str):
+    """Collects the data for odors with significant responses.
+
+    Args:
+        odor: The odor for which to collect data.
+        dataset_type: Chronic or acute experiment type.
+        data_dict: The dictionary containing all significant data for the
+            dataset.
+
+    Returns:
+        If acute dataset, a list containing: a list of significant odor
+            experiments, a list of the number of ROIs imaged, and the number
+            of total animals imaged.
+        If chronic dataset, returns a list of experiments with significant
+            responses for the odor.
     """
 
     if dataset_type == "acute":
@@ -157,7 +235,7 @@ def get_odor_data(odor, dataset_type, data_dict):
         for animal_id in data_dict:
             animal_exp_list = []
 
-            for exp_ct, experiment in enumerate(data_dict[animal_id].keys()):
+            for experiment in data_dict[animal_id].keys():
                 if odor in data_dict[animal_id][experiment]:
                     animal_exp_list.append(experiment)
                     sig_odor_exps[animal_id] = animal_exp_list
@@ -170,15 +248,12 @@ def get_odor_data(odor, dataset_type, data_dict):
         data = [sig_odor_exps, all_roi_counts, total_animals]
 
     elif dataset_type == "chronic":
-        # makes list of experiments that have sig responses for
-        # the odor
+        # makes list of experiments that have sig responses for the odor
         sig_odor_exps = []
 
         for experiment in data_dict.keys():
             if odor in data_dict[experiment]:
                 sig_odor_exps.append(experiment)
-
-        total_sessions = len(sig_odor_exps)
 
         data = sig_odor_exps
 
@@ -186,14 +261,27 @@ def get_odor_data(odor, dataset_type, data_dict):
 
 
 def sort_measurements_df(
-    dir_path,
-    xlsx_fname,
-    df_list,
-    sample_type,
-    measures,
-    dataset_type,
-    animal_id=None,
+    dir_path: str,
+    xlsx_fname: str,
+    df_list: list,
+    sample_type: str,
+    measures: list,
+    dataset_type: str,
+    animal_id: str = None,
 ):
+    """Saves the DataFrames for each measurement as a sheet in a summary
+    compiled_dataset_analysis.xlsx file for the dataset.
+
+    Args:
+        dir_path: Path to the directory for saving the .xlsx file.
+        xlsx_fname: Name of the .xlsx file to save.
+        df_list: List containing DataFrames for each measurement.
+        sample_type: The sample type, e.g. "Cell", "Glomerulus", or "Grid".
+        measures: A list of the measurement names.
+        dataset_type: Chronic or acute dataset.
+        animal_id: The animal ID, if it's a chronic dataset.
+    """
+
     sheetname_list = [
         "Baseline",
         "Blank-subtracted DeltaFF(%)",
@@ -236,16 +324,27 @@ def sort_measurements_df(
 
 
 def generate_plots(
-    sig_odors,
-    nosig_exps,
-    dataset_type,
-    data_dict,
-    measures_list,
-    sorted_dates=None,
-    interval=None,
-):
-    """
-    Creates plots for each odor
+    sig_odors: list,
+    nosig_exps: list,
+    dataset_type: str,
+    data_dict: dict,
+    measures_list: list,
+    sorted_dates: list = None,
+    interval: str = None,
+) -> dict:
+    """Creates plots for each odor.
+
+    Args:
+        sig_odors: List of odors with significant responses.
+        nosig_exps: List of experiments with no significant responses.
+        dataset_type: Chronic or acute dataset.
+        data_dict: Data for all significant responses.
+        measures_list: A list of the measurement names.
+        sorted_dates: A list of experiments, sorted by date. For chronic only.
+        interval: User-selected interval type, for chronic only.
+
+    Returns:
+        A dict of dicts, with odor then measurement as keys, and plots as items.
     """
 
     plots_list = defaultdict(dict)
@@ -312,7 +411,19 @@ def generate_plots(
     return plots_list
 
 
-def show_plots_sliders(plots_list, selected_odor, sig_odors, measures):
+def show_plots_sliders(
+    plots_list: dict, selected_odor: str, sig_odors: list, measures: list
+):
+    """Shows the slider for selecting odor number for displaying plots.
+
+    Args:
+        plots_list: A dict of dicts, with odor then measurement as keys,
+            and plots as items.
+        selected_odor: The odor for which to display plots.
+        sig_odors: Significant odors with available plots to display.
+        measures: The names of measurements.
+    """
+
     plot_measures = measures.copy()
     plot_measures.remove("Baseline")
     if plots_list:
@@ -329,9 +440,15 @@ def show_plots_sliders(plots_list, selected_odor, sig_odors, measures):
             )
 
 
-def display_plots(measures_list, plots_list, selected_odor):
+def display_plots(measures_list: list, plots_list: dict, selected_odor: str):
+    """Displays the plots for the selected odor.
+
+    Args:
+        measures_list: The names of measurements.
+        plots_list: A dict of dicts, with odor then measurement as keys,
+            and plots as items.
+        selected_odor: The odor for which to display plots.
     """
-    Displays the plots for the selected odor
-    """
+
     for measure in measures_list:
         st.plotly_chart(plots_list[selected_odor][measure])
