@@ -111,20 +111,29 @@ def upload_dataset():
     )
 
 
-def get_data() -> list:
+def get_data(status: st.status) -> list:
     """Gets data from uploaded .xlsx files and drops non-significant response
         data.
+
+    Args:
+        status: st.status container to update progress message
 
     Returns:
         A list containing experimental data and the ids of significant
             experiments and odors.
     """
 
+    st.write(
+        f"Importing data from {len(st.session_state.acute_files)} Excel "
+        f"files..."
+    )
     dict_list, df_list = import_all_excel_data(
         "acute", st.session_state.acute_files
     )
 
     sample_type = df_list[0].index.name
+
+    st.write("Generating summary .xlsx file...")
 
     sort_measurements_df(
         st.session_state.acute_dir_path,
@@ -141,29 +150,30 @@ def get_data() -> list:
 def process_dataset():
     """Processes data from uploaded files and creates summary .xlsx file."""
 
-    st.session_state.pg3_load_data = True
+    with st.status("Processing data...", expanded=True) as status:
+        st.session_state.pg3_load_data = True
 
-    (
-        st.session_state.nosig_exps,
-        odors_list,
-        st.session_state.sorted_sig_data,
-    ) = get_data()
+        (
+            st.session_state.nosig_exps,
+            odors_list,
+            st.session_state.sorted_sig_data,
+        ) = get_data(status)
 
-    st.info(
-        f"Response data loaded successfully for "
-        f"{len(st.session_state.acute_files)} experiments. Summary .xlsx"
-        " file saved to the selected directory as "
-        "compiled_dataset_analysis.xlsx"
-    )
+        status.update(
+            label="All data loaded. Summary .xlsx file saved to the selected"
+            "directory as compiled_dataset_analysis.xlsx",
+            state="complete",
+            expanded=False,
+        )
 
-    st.session_state.sig_odors = check_sig_odors(
-        odors_list,
-        st.session_state.nosig_exps,
-        st.session_state.acute_files,
-    )
+        st.session_state.sig_odors = check_sig_odors(
+            odors_list,
+            st.session_state.nosig_exps,
+            st.session_state.acute_files,
+        )
 
-    # if load data is clicked again, doesn't display plots/slider
-    st.session_state.acute_plots_list = False
+        # if load data is clicked again, doesn't display plots/slider
+        st.session_state.acute_plots_list = False
 
 
 def main():

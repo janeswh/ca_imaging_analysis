@@ -150,8 +150,12 @@ class RawFolder(object):
         """str: The file name for exporting .csv file."""
         return f"{self.file_prefix}_solenoid_info.csv"
 
-    def rename_txt(self):
-        """Renames .txt files if needed."""
+    def rename_txt(self, status: st.status):
+        """Renames .txt files if needed.
+
+        Args:
+            status: st.status container to update progress message
+        """
 
         # pulls out txt file names, excluding solenoid file
         data_files = [
@@ -167,12 +171,10 @@ class RawFolder(object):
         if os.path.isfile(
             Path(self.session_path, f"{self._exp_name}_000.txt")
         ):
-            st.info(
-                ".txt files are already in the correct format; proceeding with analysis."
-            )
+            st.write(".txt files are already in the correct format.")
 
         else:
-            st.info("Renaming .txt files to the correct format.")
+            st.write("Renaming .txt files to the correct format.")
             # renames text files
             _ext = ".txt"
             endsWithNumber = re.compile(r"(\d+)" + (re.escape(_ext)) + "$")
@@ -185,7 +187,7 @@ class RawFolder(object):
                 # this renames the first trial text file and adds 000
                 else:
                     self.rename_correct_format(m, filename, _ext, first=True)
-            st.info(".txt files renamed; proceeding with analysis.")
+            st.write(".txt files renamed.")
 
     def get_txt_file_paths(self) -> list:
         """Creates list of paths for all text files, excluding solenoid info.

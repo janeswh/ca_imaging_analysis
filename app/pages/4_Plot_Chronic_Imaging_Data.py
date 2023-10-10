@@ -116,7 +116,7 @@ def upload_dataset():
     )
 
 
-def get_data():
+def get_data(status: st.status) -> list:
     """Gets data from uploaded .xlsx files and drops non-significant response
         data.
 
@@ -125,10 +125,17 @@ def get_data():
             experiments and odors.
     """
 
+    st.write(
+        f"Importing data from {len(st.session_state.chronic_files)} Excel "
+        f"files from animal ID {st.session_state.animal_id}..."
+    )
+
     dict_list, df_list = import_all_excel_data(
         "chronic", st.session_state.chronic_files
     )
     sample_type = df_list[0].index.name
+
+    st.write("Generating summary .xlsx file...")
 
     st.session_state.animal_id = (
         f"{st.session_state.chronic_files[0].name.split('_')[1]}_"
@@ -151,28 +158,31 @@ def get_data():
 def process_dataset():
     """Processes data from uploaded files and creates summary .xlsx file."""
 
-    st.session_state.pg4_load_data = True
+    with st.status("Processing data...", expanded=True) as status:
+        st.session_state.pg4_load_data = True
 
-    (
-        st.session_state.nosig_exps,
-        odors_list,
-        st.session_state.sig_data,
-        st.session_state.sorted_dates,
-    ) = get_data()
+        (
+            st.session_state.nosig_exps,
+            odors_list,
+            st.session_state.sig_data,
+            st.session_state.sorted_dates,
+        ) = get_data(status)
 
-    st.info(
-        f"Response data loaded successfully for "
-        f"{len(st.session_state.chronic_files)} experiments from "
-        f"animal ID {st.session_state.animal_id}. Summary .xlsx file saved to "
-        "the selected directory as compiled_dataset_analysis.xlsx."
-    )
+        status.update(
+            label="All data loaded. Summary .xlsx file saved to the selected"
+            "directory as compiled_dataset_analysis.xlsx",
+            state="complete",
+            expanded=False,
+        )
 
-    st.session_state.sig_odors = check_sig_odors(
-        odors_list, st.session_state.nosig_exps, st.session_state.chronic_files
-    )
+        st.session_state.sig_odors = check_sig_odors(
+            odors_list,
+            st.session_state.nosig_exps,
+            st.session_state.chronic_files,
+        )
 
-    # if load data is clicked again, doesn't display plots/slider
-    st.session_state.chronic_plots_list = False
+        # if load data is clicked again, doesn't display plots/slider
+        st.session_state.chronic_plots_list = False
 
 
 def main():

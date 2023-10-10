@@ -135,43 +135,56 @@ def run_analysis(
     data = RawFolder(folder_path, date, animal, ROI, sample_type, drop_trial)
     data.get_solenoid_order()  # gets odor order from solenoid txt file
 
-    if run_type == "solenoid":
-        data.save_solenoid_info()  # saves solenoid order to csv
-        st.info("Solenoid info exported to csv.")
-
-    elif run_type == "analysis":
-        # display error message if no txt files present
-        data_files = [
-            x
-            for x in os.listdir(data.session_path)
-            if "solenoid" not in x and ".txt" in x
-        ]
-        if len(data_files) == 0:
-            st.error(
-                "Please make sure the Ca imaging txt files are present in "
-                "the selected directory."
+    with st.status("Analyzing data...", expanded=True) as status:
+        if run_type == "solenoid":
+            data.save_solenoid_info()  # saves solenoid order to csv
+            status.update(
+                label="Solenoid info exported to csv.",
+                state="complete",
+                expanded=False,
             )
-        else:
-            data.rename_txt()  # adds _000.txt to end of first trial file
-            file_paths = data.get_txt_file_paths()
-            data_df = data.iterate_txt_files(file_paths)
-            data.organize_all_data_df(data_df)
 
-            # Drop trials from the data set.
-            if drop_trial:
-                data.drop_trials()
+        elif run_type == "analysis":
+            # display error message if no txt files present
+            data_files = [
+                x
+                for x in os.listdir(data.session_path)
+                if "solenoid" not in x and ".txt" in x
+            ]
+            if len(data_files) == 0:
+                status.update(
+                    label="Please make sure the Ca imaging txt files are present in "
+                    "the selected directory.",
+                    state="error",
+                    expanded=False,
+                )
+            else:
+                data.rename_txt(
+                    status
+                )  # adds _000.txt to end of first trial file
+                file_paths = data.get_txt_file_paths()
+                data_df = data.iterate_txt_files(file_paths)
+                data.organize_all_data_df(data_df)
 
-            # sort all data by neuron/glomerulus
-            # adds progress bar
-            bar = stqdm(
-                range(data.total_n),
-                desc=f"Analyzing {sample_type}",
-            )
-            for n_count in bar:
-                bar_text = data.process_txt_data(n_count, sample_type)
-                bar.set_description(bar_text, refresh=True)
+                # Drop trials from the data set.
+                if drop_trial:
+                    data.drop_trials()
 
-            st.info("Analysis finished.")
+                # sort all data by neuron/glomerulus
+                # adds progress bar
+                bar = stqdm(
+                    range(data.total_n),
+                    desc=f"Analyzing {sample_type}",
+                )
+                for n_count in bar:
+                    bar_text = data.process_txt_data(n_count, sample_type)
+                    bar.set_description(bar_text, refresh=True)
+
+                status.update(
+                    label="Analysis finished.",
+                    state="complete",
+                    expanded=False,
+                )
 
 
 def main():
