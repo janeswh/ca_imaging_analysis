@@ -1,3 +1,5 @@
+"""Contains functions for creating and formatting plots."""
+
 import plotly.graph_objects as go
 import plotly.io as pio
 from math import nan
@@ -7,9 +9,11 @@ pio.templates.default = "plotly_white"
 import pdb
 
 
-def get_odor_colors():
-    """
-    Creates fixed colors for 8 odors
+def get_odor_colors() -> dict:
+    """Creates fixed colors for 8 odors.
+
+    Returns:
+        A dict with odor name as keys and hex color codes as items.
     """
     odor_colors = {
         "Odor 1": "#1A6FF2",
@@ -25,10 +29,21 @@ def get_odor_colors():
     return odor_colors
 
 
-def plot_avg_amps(avg_means_df, odors_to_plot):
+def plot_avg_amps(
+    avg_means_df: pd.DataFrame, odors_to_plot: list
+) -> go.Figure:
+    """Plots the mean fluorescence amplitude of every odor for one sample.
+
+    Args:
+        avg_means_df: DataFrame containing the mean fluorescence amplitudes
+            for the sample.
+        odors_to_plot: List of odors for which to generate plots.
+
+    Returns:
+        A plot containing one trace for each mean fluorescence amplitude per
+            odor.
     """
-    Plots the mean amptlidue of every odor for one sample
-    """
+
     odor_colors = get_odor_colors()
     fig = go.Figure()
 
@@ -53,13 +68,18 @@ def plot_avg_amps(avg_means_df, odors_to_plot):
     return fig
 
 
-def set_color_scales(dataset_type):
-    """
-    Creates fixed color scales used for plotting
+def set_color_scales(dataset_type: str) -> dict:
+    """Creates fixed color scales used for plotting.
+
+    Args:
+        dataset_type: Chronic or acute dataset.
+
+    Returns:
+        A dict with timepoints as keys and hex color codes as items.
     """
 
-    #  this creates color scales for 12 animals with 2 ROIs each
     if dataset_type == "acute":
+        #  This creates color scales for 12 animals with 2 ROIs each
         colorscale = {
             "marker": {
                 1: ["rgba(237, 174, 73, 0.5)", "rgba(244, 206, 144, 0.5)"],
@@ -91,7 +111,7 @@ def set_color_scales(dataset_type):
             },
         }
     elif dataset_type == "chronic":
-        #  this creates color scales for 20 timepoints
+        #  This creates color scales for 20 timepoints
         colorscale = {
             "marker": {
                 1: "rgba(162, 255, 255, 0.5)",
@@ -123,8 +143,27 @@ def set_color_scales(dataset_type):
 
 
 def set_colors_legends(
-    dataset_type, color_scale, animal_ct, exp_ct, x_interval
-):
+    dataset_type: str,
+    color_scale: dict,
+    animal_ct: int,
+    exp_ct: int,
+    x_interval: str,
+) -> tuple[str, str, int]:
+    """Sets the colors and groups for plot legends.
+
+    Args:
+        dataset_type: Chronic or acute dataset.
+        color_scale: Color values to assign to traces.
+        animal_ct: For acute only, the animal being plotted.
+        exp_ct: For acute only, the experimental session being plotted.
+        x_interval: For chronic only, the timepoint being plotted.
+
+    Returns:
+        marker_color: The color of the marker for data points.
+        line_color: The color of the line connecting data points.
+        legend_group: The group the trace belongs to in the legends.
+    """
+
     if dataset_type == "acute":
         marker_color = color_scale["marker"][animal_ct + 1][exp_ct]
         line_color = color_scale["lines"][animal_ct + 1][exp_ct]
@@ -138,17 +177,31 @@ def set_colors_legends(
 
 
 def plot_acute_odor_measure_fig(
-    sig_odor_exps,
-    data_dict,
-    odor,
-    measure,
-    total_animals,
-    plot_groups,
-    total_cols,
-):
+    sig_odor_exps: list,
+    data_dict: dict,
+    odor: str,
+    measure: str,
+    total_animals: int,
+    plot_groups: bool,
+    total_cols: int,
+) -> go.Figure:
+    """Plots the values for specified odor and measurement, acute experiment.
+
+    Wrapper function for add_measure_trace().
+
+    Args:
+        sig_odor_exps: List of significant odor experiments.
+        data_dict: All significant data for the dataset.
+        odor: The odor being plotted.
+        measure: The measure being plotted.
+        total_animals: Total number of animals in the dataset.
+        plot_groups: Whether plot has groups for multiple ROIs.
+        total_cols: Total number of columns, if multiple ROIs exist.
+
+    Returns:
+        A plot for the measurement, containing data for every animal and odor.
     """
-    Plots the analysis values for specified odor and measurement
-    """
+
     measure_fig = go.Figure()
     color_scale = set_color_scales("acute")
 
@@ -184,14 +237,25 @@ def plot_acute_odor_measure_fig(
 
 
 def plot_chronic_odor_measure_fig(
-    sig_odor_exps,
-    data_dict,
-    odor,
-    measure,
-    sorted_dates,
-):
-    """
-    Plots the analysis values for specified odor and measurement
+    sig_odor_exps: list,
+    data_dict: dict,
+    odor: str,
+    measure: str,
+    sorted_dates: list,
+) -> go.Figure:
+    """Plots the values for specified odor and measurement, chronic experiment.
+
+    Wrapper function for add_measure_trace().
+
+    Args:
+        sig_odor_exps: List of significant odor experiments.
+        data_dict: All significant data for the dataset.
+        odor: The odor being plotted.
+        measure: The measure being plotted.
+        sorted_dates: A list of experiments, sorted by date.
+
+    Returns:
+        A plot for the measurement, containing data for timepoint and odor.
     """
     measure_fig = go.Figure()
 
@@ -228,18 +292,29 @@ def plot_chronic_odor_measure_fig(
 
 
 def add_acute_mean_line(
-    fig,
-    total_animals,
-    total_cols,
-    plot_groups,
-    animal_ct,
-    exp_ct,
-    color_scale,
-    measure,
-    exp_odor_df,
+    fig: go.Figure,
+    total_animals: int,
+    total_cols: int,
+    plot_groups: bool,
+    animal_ct: int,
+    exp_ct: int,
+    color_scale: dict,
+    measure: str,
+    exp_odor_df: pd.DataFrame,
 ):
-    """
-    Adds mean line to each dataset
+    """Adds mean line to the points for each imaging session.
+
+    Args:
+        fig: Figure to which to add mean lines.
+        total_animals: Total number of animals being plotted, for positioning.
+        total_cols: Total number of columns, if multiple ROIs exist.
+        plot_groups: Whether plot has groups for multiple ROIs.
+        animal_ct: The animal to which to add mean lines.
+        exp_ct: The experiment number (for ordering) to which to add mean lines.
+        color_scale: Color values to assign to mean lines.
+        measure: The measure for which to add mean lines.
+        exp_odor_df: The data being plotted.
+
     """
     x0, x1 = position_acute_mean_line(
         total_animals,
@@ -263,7 +338,19 @@ def add_acute_mean_line(
     )
 
 
-def add_chronic_means(measure_fig, sorted_dates, measure, avgs):
+def add_chronic_means(
+    measure_fig: go.Figure, sorted_dates: list, measure: str, avgs: list
+):
+    """Adds mean point to the points for each imaging timepoint.
+
+    Args:
+        measure_fig: Figure to which to add mean points.
+        sorted_dates: A list of experiments, sorted by date.
+        measure: The measure for which to add mean lines.
+        avgs: The average values being added.
+
+    """
+
     # makes x-axis values for mean trace
     x_vals = list(range(1, len(sorted_dates) + 1))
 
@@ -292,14 +379,26 @@ def add_chronic_means(measure_fig, sorted_dates, measure, avgs):
 
 
 def add_measure_trace(
-    fig,
-    exp_ct,
-    sig_experiment,
-    dataset_type,
-    x_interval,
-    y_values,
-    animal_ct=None,
+    fig: go.Figure,
+    exp_ct: int,
+    sig_experiment: str,
+    dataset_type: str,
+    x_interval: str,
+    y_values: pd.Series | float,
+    animal_ct: int = None,
 ):
+    """Plots the measurement values for each imaging session.
+
+    Args:
+        fig: Figure to which to add measurement value points.
+        exp_ct: The experiment number (for ordering) to which to add mean lines.
+        sig_experiment: The name of the imaging session being plotted.
+        dataset_type: Chronic or acute dataset.
+        x_interval: The animal (acute) or timepoint (chronic) being plotted.
+        y_values: The measurement values to plot.
+        animal_ct: The animal (for ordering) to plot.
+    """
+
     # checks whether values need to be put in artificial list
     if isinstance(y_values, pd.Series):
         x = [x_interval] * len(y_values.values)
@@ -337,14 +436,21 @@ def add_measure_trace(
     )
 
 
-def get_acute_plot_params(all_roi_counts):
-    """
-    Counts the number of ROIs (columns) and animals plotted for each odor
-    """
+def get_acute_plot_params(all_roi_counts: list) -> tuple[bool, int]:
+    """Counts the number of ROIs (columns) and animals plotted for each odor.
 
-    # determines whether plot has groups for multiple ROI
-    # also counts total number of columns - if groups are present,
-    # animals with one ROI still have two columns
+    Determines whether the plot has groups for multiple ROIs, and also counts
+    total number of columns. If groups are present,animals with one ROI still
+    have two columns.
+
+    Args:
+        all_roi_counts: A list of the number of ROIs imaged.
+
+    Returns:
+        plot_groups: Whether the plotted values need to be separated by groups
+            for multiple ROIs.
+        total_cols: Total number of columns of plotted points.
+    """
 
     if 2 in all_roi_counts:
         plot_groups = True
@@ -359,11 +465,28 @@ def get_acute_plot_params(all_roi_counts):
 
 
 def position_acute_mean_line(
-    total_animals, total_cols, plot_groups, animal_ct, exp_ct
-):
-    """
-    Sets the positioning values for mean lines depending on whether each
-    animal has multiple ROIs.
+    total_animals: int,
+    total_cols: int,
+    plot_groups: bool,
+    animal_ct: int,
+    exp_ct: int,
+) -> tuple[float, float]:
+    """Calculates the positioning values for mean lines depending on whether
+        each animal has multiple ROIs.
+
+    The values here are hard-coded and super finicky and will likely need to
+    be adjusted if anything drastically changes with the plots.
+
+    Args:
+        total_animals: Total number of animals being plotted, for positioning.
+        total_cols: Total number of columns, if multiple ROIs exist.
+        plot_groups: Whether plot has groups for multiple ROIs.
+        animal_ct: The animal to which to add mean lines.
+        exp_ct: The experiment number (for ordering) to which to add mean lines.
+
+    Returns:
+        x0: The starting x position for the mean line.
+        x1: The ending x position for the mean line.
     """
 
     if plot_groups:
@@ -427,9 +550,22 @@ def position_acute_mean_line(
     return x0, x1
 
 
-def format_fig(fig, measure, dataset_type, interval=None, sorted_dates=None):
-    """
-    Formats the legend, axes, and titles of the fig
+def format_fig(
+    fig: go.Figure,
+    measure: str,
+    dataset_type: str,
+    interval: str = None,
+    sorted_dates: list = None,
+):
+    """Formats the legend, axes, and titles of the figure.
+
+    Args:
+        fig: Figure being formatted.
+        measure: The measure being plotted.
+        dataset_type: Chronic or acute dataset.
+        interval: The timepoint type being plotted, chronic only.
+        sorted_dates: The experiment names, sorted by date, chronic only.
+
     """
     #  below is code from stack overflow to hide duplicate legends
     names = set()

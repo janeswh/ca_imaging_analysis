@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0] - 2023-10-09
+
+### Changed
+
+- Changed progress info display messages to be dynamic using `st.status`
+- Upgraded to Streamlit Version 1.27.0
+
 ## [0.5.1] - 2023-08-16
 
 ### Fixed

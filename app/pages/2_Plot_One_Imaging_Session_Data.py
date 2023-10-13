@@ -1,3 +1,13 @@
+"""Sets up the Streamlit app page responsible for plotting mean fluorescence
+amplitude values from one imaging session.
+
+The page prompts the user to upload the avg_means.xlsx file containing the
+fluorescence data to be plotted. Clicking "Load Data" and "Plot Data" will
+generate one plot for each sample, with each plot containing fluorescence 
+values for all odors as different-colored traces. Mean amplitude is plotted on
+the y axis against Frame # on the x axis.
+"""
+
 import streamlit as st
 from stqdm import stqdm
 import pdb
@@ -7,17 +17,14 @@ from src.plotting import plot_avg_amps
 
 
 def set_webapp_params():
-    """
-    Sets the name of the Streamlit app along with other things
-    """
+    """Sets the name of the Streamlit app."""
+
     st.set_page_config(page_title="Plot One Imaging Session Data")
     st.title("Plot data from one imaging session")
 
 
 def initialize_states():
-    """
-    Initializes session state variables
-    """
+    """Initializes session state variables."""
 
     # makes the avg_means data persist
     if "data" not in st.session_state:
@@ -36,6 +43,10 @@ def initialize_states():
 
 
 def prompt_file():
+    """Prompts user to select the avg_means.xlsx file containing the mean
+    fluorescence values to plot.
+    """
+
     st.markdown(
         "Please select the .xlsx file containing the mean amplitudes that you "
         "want to plot. The file should be named in the format "
@@ -47,7 +58,8 @@ def prompt_file():
 
 
 def check_file():
-    # checks that the correct file has been uploaded
+    """Checks that the correct .xlsx file has been uploaded."""
+
     if st.session_state.file is not None:
         if "avg_means" not in st.session_state.file.name:
             st.error(
@@ -59,9 +71,8 @@ def check_file():
 
 
 def generate_plots():
-    """
-    Generates mean amplitude plots for all odors in all samples
-    """
+    """Generates mean amplitude plots for all odors in all samples."""
+
     if st.checkbox("Select specific odors to plot"):
         odors_to_plot = st.multiselect(
             label="Odors to plot",
@@ -88,8 +99,11 @@ def generate_plots():
 
 
 def display_plots():
-    # display slider and plots if plots have already been generated
-    # even if Plot data isn't clicked again
+    """Displays slider and plots.
+
+    Will be displayed if plots have already been generated even if Plot Data
+    isn't clicked again.
+    """
 
     st.session_state.selected_sample = st.select_slider(
         "Select sample number to display its " "corresponding plot:",

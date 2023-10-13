@@ -1,4 +1,4 @@
-"""Contains classes for analyzing either .txt files or .xlsx summary files."""
+"""Contains classes for loading either .txt files or .xlsx summary files."""
 
 import pandas as pd
 import streamlit as st
@@ -150,8 +150,12 @@ class RawFolder(object):
         """str: The file name for exporting .csv file."""
         return f"{self.file_prefix}_solenoid_info.csv"
 
-    def rename_txt(self):
-        """Renames .txt files if needed."""
+    def rename_txt(self, status: st.status):
+        """Renames .txt files if needed.
+
+        Args:
+            status: st.status container to update progress message
+        """
 
         # pulls out txt file names, excluding solenoid file
         data_files = [
@@ -167,12 +171,10 @@ class RawFolder(object):
         if os.path.isfile(
             Path(self.session_path, f"{self._exp_name}_000.txt")
         ):
-            st.info(
-                ".txt files are already in the correct format; proceeding with analysis."
-            )
+            st.write(".txt files are already in the correct format.")
 
         else:
-            st.info("Renaming .txt files to the correct format.")
+            st.write("Renaming .txt files to the correct format.")
             # renames text files
             _ext = ".txt"
             endsWithNumber = re.compile(r"(\d+)" + (re.escape(_ext)) + "$")
@@ -185,7 +187,7 @@ class RawFolder(object):
                 # this renames the first trial text file and adds 000
                 else:
                     self.rename_correct_format(m, filename, _ext, first=True)
-            st.info(".txt files renamed; proceeding with analysis.")
+            st.write(".txt files renamed.")
 
     def get_txt_file_paths(self) -> list:
         """Creates list of paths for all text files, excluding solenoid info.
@@ -495,7 +497,7 @@ class RawFolder(object):
 
         Returns:
             A tuple containing a pd.Series (AUC values for each odor) and
-                a np.float64 value (AUC value for blank odor).
+            a np.float64 value (AUC value for blank odor).
 
         """
 
@@ -628,7 +630,7 @@ class RawFolder(object):
 
         Returns:
             All the analysis results in a DataFrame, with rows as measurement
-                labels and columns as Odor #.
+            labels and columns as Odor #.
         """
 
         col_names = [
@@ -706,7 +708,39 @@ class RawFolder(object):
 
 
 class ExperimentFile(object):
-    def __init__(self, file, dataset_type):
+    """Extracts the values from the analysis.xlsx file of a given imaging
+    session. Used to collate analyses from all imaging sessions in a given
+    acute or chronic dataset.
+
+    Attributes:
+        file: streamlit.runtime.uploaded_file_manager.UploadedFile of csv file
+        dataset_type (str): Chronic or acute experiment type.
+        date (str): The date of the experiment.
+        animal_id (str): The animal ID from the experiment.
+        ROI_id (str): The ROI imaged in the experiment.
+        exp_name (str): The name of the experiment imaging session.
+        sample_type (str): The sample type, e.g. "Cell", "Glomerulus", or "Grid".
+        tuple_dict (dict): A dictionary containing tuples  of
+            (sample #, odor #) as keys and the analysis values of that sample
+            and odor pair as the values.
+    """
+
+    def __init__(self, file: str, dataset_type: str):
+        """Initializes an instance of ExperimentFile() for the dataset.
+
+        Args:
+            file: streamlit.runtime.uploaded_file_manager.UploadedFile, csv file
+            dataset_type: Chronic or acute experiment type.
+            date (str): The date of the experiment.
+            animal_id (str): The animal ID from the experiment.
+            ROI_id (str): The ROI imaged in the experiment.
+            exp_name (str): The name of the experiment imaging session.
+            sample_type (str): The sample type, e.g. "Cell", "Glomerulus", or "Grid".
+            tuple_dict (dict): A dictionary containing tuples  of
+                (sample #, odor #) as keys and the analysis values of that sample
+                and odor pair as the values.
+        """
+
         self.file = file
         self.dataset_type = dataset_type
         file_parts = file.name.split("_")[0:3]  # this is a list
@@ -716,9 +750,12 @@ class ExperimentFile(object):
         self.sample_type = None
         self.tuple_dict = None
 
-    def import_excel(self):
-        """
-        Imports each .xlsx file into dictionary
+    def import_excel(self) -> dict:
+        """Imports data from each .xlsx file into a dictionary.
+
+        Returns:
+            A dictionary containing measurement values from the analysis.xlsx
+            file, with sample # as keys.
         """
         data_dict = pd.read_excel(
             self.file,
@@ -739,10 +776,22 @@ class ExperimentFile(object):
     #     elif acute:
     #         do other stuff
 
-    def sort_data(self, data_dict, df_list):
+    def sort_data(self, data_dict: dict, df_list: list) -> list:
+        """Converts dicts containing .analysis data into DataFrames for each
+        measurement (e.g. "Time to peak (s)").
+
+        Args:
+            data_dict: A dictionary containing measurement values from
+                the analysis.xlsx file, with sample # as keys.
+            df_list: A list of DataFrames to hold the values for each
+                measurement.
+
+        Returns:
+            A list of a list of DataFrames, one list for each measurement.
+                Values from each new .xlsx file are appended as new rows in the
+                DataFrames in df_list.
         """
-        Converts imported dict into dataframe for each measurement
-        """
+
         self.tuple_dict = {
             (outerKey, innerKey): values
             for outerKey, innerDict in data_dict.items()
@@ -779,15 +828,26 @@ class ExperimentFile(object):
                 index=lambda x: int(x.split(" ")[1]), inplace=True
             )
             temp_measure_df.index.rename(self.sample_type, inplace=True)
+
+            # Append values from this analysis.xlsx file
             concat_pd = pd.concat([df_list[measure_ct], temp_measure_df])
             appended_df_list[measure_ct] = concat_pd
 
         return appended_df_list
 
-    def make_plotting_dfs(self, data_dict):
+    def make_plotting_dfs(self, data_dict: dict) -> tuple[list, pd.DataFrame]:
+        """Makes the DataFrames used for plotting measurements.
+
+        Args:
+            data_dict: A dictionary containing measurement values from
+                the analysis.xlsx file, with sample # as keys.
+
+        Returns:
+            sig_odors: A list of all the significant odors from the experiment.
+            sig_data_df: A DataFrame containing only measurements for
+                significant responses.
         """
-        Makes the dfs used for plotting measusrements
-        """
+
         sig_data_df = pd.DataFrame()
         sig_odors = []
 
