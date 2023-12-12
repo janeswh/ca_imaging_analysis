@@ -169,7 +169,7 @@ def process_dataset():
         ) = get_data(status)
 
         status.update(
-            label="All data loaded. Summary .xlsx file saved to the selected"
+            label="All data loaded. Summary .xlsx file saved to the selected "
             "directory as compiled_dataset_analysis.xlsx",
             state="complete",
             expanded=False,
