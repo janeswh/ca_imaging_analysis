@@ -38,7 +38,7 @@ six==1.16.0
 smmap==5.0.0
 st-pages==0.4.1
 stqdm==0.0.5
-streamlit==1.27.2
+streamlit==1.29.0
 tenacity==8.2.2
 toml==0.10.2
 toolz==0.12.0
