@@ -133,9 +133,23 @@ def run_analysis(
     """
 
     data = RawFolder(folder_path, date, animal, ROI, sample_type, drop_trial)
-    data.get_solenoid_order()  # gets odor order from solenoid txt file
+    # data.get_solenoid_order()  # gets odor order from solenoid txt file
 
     with st.status("Analyzing data...", expanded=True) as status:
+        try:
+            data.get_solenoid_order()
+        except Exception as error_msg:
+            st.error(
+                f"{error_msg}: Check that the contents of the "
+                "solenoid order file look correct and that the correct number "
+                "of raw .txt files are present in the directory."
+            )
+            status.update(
+                label=f"Error: {error_msg}",
+                state="error",
+                expanded=True,
+            )
+            st.stop()
         if run_type == "solenoid":
             data.save_solenoid_info()  # saves solenoid order to csv
             status.update(
@@ -163,7 +177,20 @@ def run_analysis(
                     status
                 )  # adds _000.txt to end of first trial file
                 file_paths = data.get_txt_file_paths()
-                data_df = data.iterate_txt_files(file_paths)
+                try:
+                    data_df = data.iterate_txt_files(file_paths)
+                except Exception as error_msg:
+                    st.error(
+                        f"{error_msg}: Check that the contents of the "
+                        "solenoid order file look correct and that the correct number "
+                        "of raw .txt files are present in the directory."
+                    )
+                    status.update(
+                        label=f"Error: {error_msg}",
+                        state="error",
+                        expanded=True,
+                    )
+                    st.stop()
                 data.organize_all_data_df(data_df)
 
                 # Drop trials from the data set.
