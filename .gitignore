@@ -11,3 +11,4 @@ roi_analysis_img.tar
 venv/
 
 *.pyc
+.DS_Store

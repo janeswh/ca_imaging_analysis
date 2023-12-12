@@ -56,6 +56,24 @@ For more detailed setup instructions, visit here:
 3. The web app can be accessed in a browser at the address `localhost:8501`
 4. Analysis .xlsx output files are saved to the same directory chosen in the select folder popup window.
 
+## Troubleshooting
+
+### Things to check before running the app
+- Docker and VCxserv/Xquartz are running and configured correctly
+- The `roi_app` folder is placed in the correct directory level (see above)
+- The folder you're analyzing is named and formatted correctly (95% of errors occur here)
+- All the `.txt` or `.csv` files in the folder look correct (e.g. not corrupted, weird formatting, etc)
+- There are no missing or extra files (e.g. 25 fluorescence .txt files when there are only 24 trials)
+- If compiling multiple sessions, make sure their sample type in the output `_avg_means.xlsx`, `_raw_means.xlsx`, and `_analysis.xlsx` are all the same, e.g. session 1's .xlsx files shoudn't have tabs named "Cell" whereas session 2's files have tabs named "Glomerulus."
+
+### Common fixes
+- If you see an error after you click "Pick Folder" in Load and Analyze txt Files, and the error mentions one of the below:
+    - `couldn't connect to display "host.docker.internal:0.0`
+    - `root = tk.Tk()` 
+    - Try restarting Docker, VcXserv/Xquartz (configure correctly), and if that doesn't fix it, restart the whole computer.
+    Check for and download + install updated versions of VcXserv/Xquartz
+- Make sure you're running the latest version of the app. Ensure this is the case by downloading the latest version of the wep app zip file from OneDrive.
+
 ## Available functions
 
 ### Collating and analyzing raw .txt files
