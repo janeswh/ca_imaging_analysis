@@ -2,6 +2,8 @@
 
 ## [0.7.0] - 2023-12-12
 
+### Changed
+
 - Added more error messages for incorrect file formats
 - Upgraded to Streamlit Version 1.29.0
 
