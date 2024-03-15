@@ -463,10 +463,10 @@ class RawFolder(object):
                 baseline_subtracted: The average fluorescence value, with
                     baseline subtracted.
         """
-        baseline = avg_means[:52].mean()
+        baseline = avg_means[:30].mean()
 
         # Calculates peak using max value from frames #53-300
-        peak = avg_means[52:300].max()
+        peak = avg_means[40:300].max()
         deltaF = peak - baseline
         baseline_stdx3 = avg_means[:52].std() * 3
 
@@ -547,7 +547,7 @@ class RawFolder(object):
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
-        max_frames = avg_means[52:300].idxmax()
+        max_frames = avg_means[40:300].idxmax()
         peak_times = na_template.copy()
         peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
 
@@ -561,7 +561,7 @@ class RawFolder(object):
         for sig_odor in sig_odors:
             # Window doesn't start at frame 53 because it can't precede
             #  odor onset
-            window = baseline_subtracted[56:300][sig_odor]
+            window = baseline_subtracted[40:300][sig_odor]
             onset_idx = np.argmax(window >= onset_amp[sig_odor])
             onset_time = window.index[onset_idx] * 0.0661
             response_onset[sig_odor] = onset_time
