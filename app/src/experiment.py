@@ -463,12 +463,12 @@ class RawFolder(object):
                 baseline_subtracted: The average fluorescence value, with
                     baseline subtracted.
         """
-        baseline = avg_means[:52].mean()
+        baseline = avg_means[:30].mean()
 
         # Calculates peak using max value from frames #53-300
-        peak = avg_means[52:300].max()
+        peak = avg_means[40:300].max()
         deltaF = peak - baseline
-        baseline_stdx3 = avg_means[:52].std() * 3
+        baseline_stdx3 = avg_means[:30].std() * 3
 
         deltaF_blank = deltaF[avg_means.columns[-1]]
         blank_sub_deltaF = deltaF - deltaF_blank
