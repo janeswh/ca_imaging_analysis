@@ -547,12 +547,12 @@ class RawFolder(object):
 
         # Calculates time at signal peak using all the frames
         # why does excel sheet have - 2??
-        max_frames = avg_means[52:300].idxmax()
+        max_frames = avg_means[39:300].idxmax()
         peak_times = na_template.copy()
         peak_times[sig_odors] = max_frames[sig_odors] * 0.0661
 
         # Get odor onset - Frame 57
-        odor_onset = 57 * 0.0661
+        odor_onset = 39 * 0.0661
 
         # Calculate response onset only for significant odors
         response_onset = na_template.copy()
@@ -561,7 +561,7 @@ class RawFolder(object):
         for sig_odor in sig_odors:
             # Window doesn't start at frame 53 because it can't precede
             #  odor onset
-            window = baseline_subtracted[56:300][sig_odor]
+            window = baseline_subtracted[40:300][sig_odor]
             onset_idx = np.argmax(window >= onset_amp[sig_odor])
             onset_time = window.index[onset_idx] * 0.0661
             response_onset[sig_odor] = onset_time
