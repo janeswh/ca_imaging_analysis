@@ -468,7 +468,7 @@ class RawFolder(object):
         # Calculates peak using max value from frames #53-300
         peak = avg_means[39:300].max()
         deltaF = peak - baseline
-        baseline_stdx3 = avg_means[:38].std() * 3
+        baseline_stdx3 = avg_means[:38].std() * 2
 
         deltaF_blank = deltaF[avg_means.columns[-1]]
         blank_sub_deltaF = deltaF - deltaF_blank
